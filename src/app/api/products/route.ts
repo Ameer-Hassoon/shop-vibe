@@ -1,18 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+
+const ITEMS_PER_PAGE = 20;
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
-    const category = searchParams.get('category') || '';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const search = searchParams.get("search") || "";
+    const category = searchParams.get("category") || "";
+    let parsedPage = parseInt(searchParams.get("page") || "1");
+    let parsedLimit = parseInt(
+      searchParams.get("limit") || ITEMS_PER_PAGE.toString(),
+    );
+    if (Number.isNaN(parsedPage) || parsedPage < 1) parsedPage = 1;
+    if (Number.isNaN(parsedLimit) || parsedLimit < 1)
+      parsedLimit = ITEMS_PER_PAGE;
+    const limit = Math.min(parsedLimit, 1000);
+    const page = parsedPage;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (search) {
       where.OR = [
@@ -22,33 +31,40 @@ export async function GET(request: NextRequest) {
     }
 
     if (category) {
-      const categories = category.split(',').map(c => c.trim());
-      if (categories.length === 1) {
-        where.category = categories[0];
-      } else {
-        where.category = { in: categories };
-      }
+      const categories = category.split(",").map((c) => c.trim());
+      where.category =
+        categories.length === 1 ? categories[0] : { in: categories };
     }
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
       prisma.product.count({ where }),
     ]);
 
-    return NextResponse.json({
-      products,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    });
-  } catch (error) {
-    console.error('Failed to fetch products:', error);
-    return NextResponse.json({ products: [], total: 0, page: 1, totalPages: 0 }, { status: 200 });
+    return NextResponse.json(
+      {
+        products,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
+      },
+    );
+  } catch (err) {
+    console.error("Failed to fetch products:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch products" },
+      { status: 500 },
+    );
   }
 }
 
@@ -56,20 +72,38 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || (session.user as any).role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 401 }
-      );
+    if (!session || (session.user as { role?: string }).role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
     const { name, description, price, image, category, stock } = body;
 
-    if (!name || !description || !price || !image || !category || stock === undefined) {
+    if (
+      !name ||
+      !description ||
+      price === undefined ||
+      !image ||
+      !category ||
+      stock === undefined
+    ) {
       return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 }
+        { error: "All fields required" },
+        { status: 400 },
+      );
+    }
+
+    const parsedPrice = parseFloat(price);
+    const parsedStock = parseInt(stock);
+    if (
+      isNaN(parsedPrice) ||
+      isNaN(parsedStock) ||
+      parsedPrice < 0 ||
+      parsedStock < 0
+    ) {
+      return NextResponse.json(
+        { error: "Invalid price or stock value" },
+        { status: 400 },
       );
     }
 
@@ -77,18 +111,19 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description,
-        price: parseFloat(price),
+        price: parsedPrice,
         image,
         category,
-        stock: parseInt(stock),
+        stock: parsedStock,
       },
     });
 
     return NextResponse.json(product, { status: 201 });
-  } catch (error) {
+  } catch (e) {
+    console.error("Failed to create product:", e);
     return NextResponse.json(
-      { error: 'Failed to create product' },
-      { status: 500 }
+      { error: "Failed to create product" },
+      { status: 500 },
     );
   }
 }

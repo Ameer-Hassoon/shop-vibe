@@ -9,23 +9,17 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const product = await prisma.product.findUnique({
-      where: { id },
-    });
+    const product = await prisma.product.findUnique({ where: { id } });
 
     if (!product) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    return NextResponse.json(product);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch product' },
-      { status: 500 }
-    );
+    return NextResponse.json(product, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
+    });
+  } catch {
+    return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 });
   }
 }
 
@@ -35,13 +29,9 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    console.log('PUT /api/products - session role:', (session?.user as any)?.role);
 
-    if (!session || (session.user as any).role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 401 }
-      );
+    if (!session || (session.user as { role?: string }).role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
@@ -50,22 +40,12 @@ export async function PUT(
 
     const product = await prisma.product.update({
       where: { id },
-      data: {
-        name,
-        description,
-        price: parseFloat(price),
-        image,
-        category,
-        stock: parseInt(stock),
-      },
+      data: { name, description, price: parseFloat(price), image, category, stock: parseInt(stock) },
     });
 
     return NextResponse.json(product);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to update product' },
-      { status: 500 }
-    );
+  } catch {
+    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
 }
 
@@ -75,25 +55,16 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    console.log('DELETE /api/products - session role:', (session?.user as any)?.role);
 
-    if (!session || (session.user as any).role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 401 }
-      );
+    if (!session || (session.user as { role?: string }).role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
-    await prisma.product.delete({
-      where: { id },
-    });
+    await prisma.product.delete({ where: { id } });
 
-    return NextResponse.json({ message: 'Product deleted successfully' });
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to delete product' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
   }
 }
