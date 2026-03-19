@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# E-Commerce Shop
+
+A full-featured e-commerce web application built with Next.js, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
+
+## Features
+
+- **Product Catalog**: Browse, search, and view product details
+- **Shopping Cart**: Add/remove items, update quantities, persist in localStorage
+- **User Authentication**: Login/register with NextAuth.js
+- **Admin Dashboard**: Create, edit, and delete products
+- **Role-Based Access**: Admin-only routes protected with middleware
+- **Responsive Design**: Mobile and desktop friendly
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: NextAuth.js
+- **State Management**: Zustand
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+
+- PostgreSQL database
+
+### Installation
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your database URL and secrets
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up the database:
+```bash
+npx prisma db push
+npm run db:seed
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+5. Open [http://localhost:3000](http://localhost:3000)
 
-To learn more about Next.js, take a look at the following resources:
+## Default Admin Account
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+After seeding the database, you can login with:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Email**: admin@shop.com
+- **Password**: admin123
 
-## Deploy on Vercel
+## API Routes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/products | Get all products |
+| POST | /api/products | Create product (admin) |
+| GET | /api/products/[id] | Get single product |
+| PUT | /api/products/[id] | Update product (admin) |
+| DELETE | /api/products/[id] | Delete product (admin) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project Structure
+
+```
+├── prisma/
+│   ├── schema.prisma      # Database schema
+│   └── seed.ts            # Seed script
+├── src/
+│   ├── app/
+│   │   ├── admin/         # Admin dashboard
+│   │   ├── api/           # API routes
+│   │   ├── cart/          # Cart page
+│   │   ├── login/         # Login page
+│   │   ├── product/       # Product details
+│   │   ├── register/      # Registration page
+│   │   ├── layout.tsx     # Root layout
+│   │   └── page.tsx       # Home page
+│   ├── components/        # Reusable components
+│   ├── hooks/             # Custom hooks
+│   ├── lib/               # Utilities (Prisma client)
+│   ├── providers/         # React providers
+│   ├── store/             # Zustand stores
+│   └── types/             # TypeScript types
+├── middleware.ts          # Route protection
+└── package.json
+```
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run db:generate` - Generate Prisma client
+- `npm run db:push` - Push schema changes
+- `npm run db:seed` - Seed database with sample data
+
+## Deployment
+
+The app can be deployed to Vercel or any Node.js hosting platform. Make sure to:
+
+1. Set up a PostgreSQL database
+2. Configure environment variables
+3. Run `npm run build` before deployment
