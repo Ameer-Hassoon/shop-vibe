@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,9 @@ interface Order {
   city: string;
   state: string;
   zipCode: string;
+  trackingNumber?: string | null;
+  carrier?: string | null;
+  estimatedDelivery?: string | null;
   createdAt: string;
   items: OrderItem[];
 }
@@ -73,16 +77,35 @@ export default function OrdersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'PENDING':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'PROCESSING':
+        return 'bg-blue-100 text-blue-700';
       case 'CONFIRMED':
         return 'bg-green-100 text-green-700';
       case 'SHIPPED':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-indigo-100 text-indigo-700';
       case 'DELIVERED':
         return 'bg-purple-100 text-purple-700';
       case 'CANCELLED':
         return 'bg-red-100 text-red-700';
+      case 'REFUNDED':
+        return 'bg-gray-100 text-gray-700';
       default:
         return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PENDING': return 'Pending';
+      case 'PROCESSING': return 'Processing';
+      case 'CONFIRMED': return 'Confirmed';
+      case 'SHIPPED': return 'Shipped';
+      case 'DELIVERED': return 'Delivered';
+      case 'CANCELLED': return 'Cancelled';
+      case 'REFUNDED': return 'Refunded';
+      default: return status;
     }
   };
 
@@ -152,9 +175,16 @@ export default function OrdersPage() {
                       <p className="font-bold text-indigo-600">${order.total.toFixed(2)}</p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+                      {getStatusLabel(order.status)}
+                    </span>
+                    {order.trackingNumber && (
+                      <span className="text-sm text-gray-500">
+                        Tracking: {order.trackingNumber}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -163,10 +193,12 @@ export default function OrdersPage() {
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center gap-4">
                       <Link href={`/product/${item.product.id}`} className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
-                        <img
+                        <Image
                           src={item.product.image}
                           alt={item.product.name}
-                          className="w-full h-full object-cover"
+                          width={80}
+                          height={80}
+                          className="object-cover"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80x80?text=N/A';
                           }}
@@ -188,11 +220,21 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Shipping Address</h3>
-                  <p className="text-gray-600">
-                    {order.shippingAddress}<br />
-                    {order.city}, {order.state} {order.zipCode}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">Shipping Address</h3>
+                      <p className="text-gray-600">
+                        {order.shippingAddress}<br />
+                        {order.city}, {order.state} {order.zipCode}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/orders/${order.id}`}
+                      className="px-4 py-2 text-sm text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                    >
+                      View Details
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

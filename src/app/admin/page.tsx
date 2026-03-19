@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -78,28 +79,22 @@ export default function AdminDashboard() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
+    setDeletingId(id);
     try {
+      const previousProducts = products;
       const res = await fetch(`/api/products/${id}`, {
         method: "DELETE",
       });
 
       if (!res.ok) {
-        setProducts(previousProducts);
-        setTotalProducts((prev) => prev + 1);
         window.alert(`Failed to delete product (status: ${res.status} ${res.statusText})`);
+        setProducts(previousProducts);
+      } else {
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setTotalProducts((prev) => prev - 1);
       }
     } catch (error) {
-      setProducts(previousProducts);
-      setTotalProducts((prev) => prev + 1);
       window.alert(`Failed to delete product: ${error instanceof Error ? error.message : error}`);
-    } finally {
-      setDeletingId(null);
-    }
-      }
-    } catch (error) {
-      setProducts(previousProducts);
-      setTotalProducts((prev) => prev + 1);
-      console.error("Failed to delete product:", error);
     } finally {
       setDeletingId(null);
     }
@@ -331,11 +326,12 @@ export default function AdminDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                            <img
+                            <Image
                               src={product.image}
                               alt={product.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
+                              width={48}
+                              height={48}
+                              className="object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
                                   "https://via.placeholder.com/48x48?text=N/A";

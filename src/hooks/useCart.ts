@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Product, CartItemType } from '@/types';
+import { useSyncExternalStore } from 'react';
 import { useCartStore } from '@/store/cart';
 
 export function useCart() {
-  const [isHydrated, setIsHydrated] = useState(false);
-  
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+  const subscribe = useCartStore.subscribe;
+  const getSnapshot = () => useCartStore.getState();
 
-  const items = useCartStore((state) => state.items);
+  const items = useSyncExternalStore(subscribe, getSnapshot).items;
   const addToCart = useCartStore((state) => state.addToCart);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
@@ -20,7 +16,6 @@ export function useCart() {
   const getTotalPrice = useCartStore((state) => state.getTotalPrice);
 
   return {
-    isHydrated,
     items,
     addToCart,
     removeFromCart,

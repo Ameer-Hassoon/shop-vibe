@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userEmail = session.user.email;
+
     const body = await request.json();
     const { items, shippingAddress, city, state, zipCode, total } = body;
 
@@ -147,9 +149,9 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
-    if (session.user.email) {
+    if (userEmail) {
       sendOrderConfirmationEmail({
-        email: session.user.email,
+        email: userEmail,
         orderId: order.id,
         items: order.items.map((item) => ({
           name: item.product.name,
@@ -163,7 +165,7 @@ export async function POST(request: NextRequest) {
         zipCode: order.zipCode,
       }).catch((err) => {
         console.error(
-          `Failed to send order confirmation email to ${session.user.email} for order ${order.id}:`,
+          `Failed to send order confirmation email to ${userEmail} for order ${order.id}:`,
           err,
         );
       });

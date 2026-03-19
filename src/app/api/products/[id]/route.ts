@@ -38,9 +38,47 @@ export async function PUT(
     const body = await request.json();
     const { name, description, price, image, category, stock } = body;
 
+    const errors: string[] = [];
+    if (name !== undefined && (typeof name !== 'string' || name.trim().length === 0)) {
+      errors.push('Name is required and must be a non-empty string');
+    }
+    if (description !== undefined && (typeof description !== 'string' || description.trim().length === 0)) {
+      errors.push('Description is required and must be a non-empty string');
+    }
+    if (price !== undefined) {
+      const parsedPrice = parseFloat(price);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        errors.push('Price must be a non-negative number');
+      }
+    }
+    if (image !== undefined && (typeof image !== 'string' || image.trim().length === 0)) {
+      errors.push('Image URL is required');
+    }
+    if (category !== undefined && (typeof category !== 'string' || category.trim().length === 0)) {
+      errors.push('Category is required and must be a non-empty string');
+    }
+    if (stock !== undefined) {
+      const parsedStock = parseInt(stock);
+      if (isNaN(parsedStock) || parsedStock < 0) {
+        errors.push('Stock must be a non-negative integer');
+      }
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json({ error: errors.join(', ') }, { status: 400 });
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description.trim();
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (image !== undefined) updateData.image = image.trim();
+    if (category !== undefined) updateData.category = category.trim();
+    if (stock !== undefined) updateData.stock = parseInt(stock);
+
     const product = await prisma.product.update({
       where: { id },
-      data: { name, description, price: parseFloat(price), image, category, stock: parseInt(stock) },
+      data: updateData,
     });
 
     return NextResponse.json(product);

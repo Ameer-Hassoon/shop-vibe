@@ -3,6 +3,27 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
+const loginRateLimitMap = new Map<string, { count: number; timestamp: number }>();
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 10;
+
+function isLoginRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = loginRateLimitMap.get(ip);
+
+  if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
+    loginRateLimitMap.set(ip, { count: 1, timestamp: now });
+    return false;
+  }
+
+  if (record.count >= MAX_LOGIN_ATTEMPTS) {
+    return true;
+  }
+
+  record.count++;
+  return false;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -11,8 +32,17 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const forwarded = req?.headers?.['x-forwarded-for'];
+        const clientIP = typeof forwarded === 'string' 
+          ? forwarded.split(',')[0].trim() 
+          : req?.headers?.['x-real-ip'] || 'unknown';
+
+        if (isLoginRateLimited(clientIP)) {
           return null;
         }
 

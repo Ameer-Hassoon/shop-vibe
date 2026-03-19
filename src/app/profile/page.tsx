@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -93,7 +94,7 @@ export default function ProfilePage() {
     return null;
   }
 
-  const user = session.user as any;
+  const user = session.user as { id?: string; role?: string; name?: string | null; email?: string | null };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -190,11 +191,13 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex gap-2 overflow-x-auto pb-1">
                         {order.items.slice(0, 4).map((item) => (
-                          <img
+                          <Image
                             key={item.id}
                             src={item.product.image}
                             alt={item.product.name}
-                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                            width={48}
+                            height={48}
+                            className="rounded-lg object-cover flex-shrink-0"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48x48?text=N/A';
                             }}

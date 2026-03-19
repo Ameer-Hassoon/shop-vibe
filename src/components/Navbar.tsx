@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useCartStore } from '@/store/cart';
@@ -11,7 +12,6 @@ export default function Navbar() {
   const [search, setSearch] = useState('');
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -37,7 +37,6 @@ export default function Navbar() {
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (search.trim().length >= 2) {
-        setLoading(true);
         try {
         const res = await fetch(`/api/products?search=${encodeURIComponent(search)}`);
         const data = await res.json();
@@ -46,8 +45,6 @@ export default function Navbar() {
           setShowSuggestions(true);
         } catch (error) {
           console.error('Search error:', error);
-        } finally {
-          setLoading(false);
         }
       } else {
         setSuggestions([]);
@@ -110,10 +107,12 @@ export default function Navbar() {
                     onClick={() => handleSuggestionClick(product.id)}
                     className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left"
                   >
-                    <img
+                    <Image
                       src={product.image}
                       alt={product.name}
-                      className="w-12 h-12 object-cover rounded"
+                      width={48}
+                      height={48}
+                      className="object-cover rounded"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48x48?text=N/A';
                       }}
@@ -132,13 +131,23 @@ export default function Navbar() {
                   }}
                   className="w-full p-3 text-center text-indigo-600 hover:bg-indigo-50 font-medium border-t"
                 >
-                  See all results for "{search}"
+                  See all results for &quot;{search}&quot;
                 </button>
               </div>
             )}
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            {session && (
+              <Link
+                href="/wishlist"
+                className="relative p-2 text-gray-600 hover:text-indigo-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </Link>
+            )}
             <Link
               href="/cart"
               className="relative p-2 text-gray-600 hover:text-indigo-600"

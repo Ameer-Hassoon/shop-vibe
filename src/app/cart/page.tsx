@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCartStore } from '@/store/cart';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -43,10 +44,12 @@ export default function CartPage() {
           {items.map((item) => (
             <div key={item.id} className="p-6 flex gap-6">
               <Link href={`/product/${item.product.id}`} className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
-                <img
+                <Image
                   src={item.product.image}
                   alt={item.product.name}
-                  className="w-full h-full object-cover"
+                  width={96}
+                  height={96}
+                  className="object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = 'https://via.placeholder.com/96x96?text=No';
                   }}

@@ -36,10 +36,22 @@ export async function GET(request: NextRequest) {
         categories.length === 1 ? categories[0] : { in: categories };
     }
 
+    const inStockOnly = searchParams.get("inStock") === "true";
+    if (inStockOnly) {
+      where.stock = { gt: 0 };
+    }
+
+    const sortBy = searchParams.get("sortBy") || "newest";
+    let orderBy: Record<string, string> = { createdAt: "desc" };
+    if (sortBy === "price-low") orderBy = { price: "asc" };
+    else if (sortBy === "price-high") orderBy = { price: "desc" };
+    else if (sortBy === "name") orderBy = { name: "asc" };
+    else if (sortBy === "rating") orderBy = { averageRating: "desc" };
+
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy,
         skip,
         take: limit,
       }),

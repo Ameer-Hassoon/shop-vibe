@@ -7,12 +7,16 @@ interface FilterState {
   categories: string[];
   minPrice: number;
   maxPrice: number;
+  minRating: number;
+  inStockOnly: boolean;
   sortBy: string;
   currentPage: number;
   setCategories: (cats: string[]) => void;
   toggleCategory: (cat: string) => void;
   setMinPrice: (val: number) => void;
   setMaxPrice: (val: number) => void;
+  setMinRating: (val: number) => void;
+  setInStockOnly: (val: boolean) => void;
   setSortBy: (val: string) => void;
   setCurrentPage: (val: number) => void;
   reset: () => void;
@@ -24,6 +28,8 @@ export const useFilters = create<FilterState>()(
       categories: [],
       minPrice: 0,
       maxPrice: 1000,
+      minRating: 0,
+      inStockOnly: false,
       sortBy: "newest",
       currentPage: 1,
       setCategories: (categories) => set({ categories, currentPage: 1 }),
@@ -36,6 +42,8 @@ export const useFilters = create<FilterState>()(
         })),
       setMinPrice: (minPrice) => set({ minPrice, currentPage: 1 }),
       setMaxPrice: (maxPrice) => set({ maxPrice, currentPage: 1 }),
+      setMinRating: (minRating) => set({ minRating, currentPage: 1 }),
+      setInStockOnly: (inStockOnly) => set({ inStockOnly, currentPage: 1 }),
       setSortBy: (sortBy) => set({ sortBy, currentPage: 1 }),
       setCurrentPage: (currentPage) => set({ currentPage }),
       reset: () =>
@@ -43,6 +51,8 @@ export const useFilters = create<FilterState>()(
           categories: [],
           minPrice: 0,
           maxPrice: 1000,
+          minRating: 0,
+          inStockOnly: false,
           sortBy: "newest",
           currentPage: 1,
         }),
