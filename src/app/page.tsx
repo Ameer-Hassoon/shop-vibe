@@ -84,13 +84,12 @@ function HomePageContent() {
   }, []);
 
   const filtered = useMemo(() => {
-    let arr = products.filter(
-      (p) => {
-        const priceMatch = p.price >= minPrice && p.price <= maxPrice;
-        const ratingMatch = minRating === 0 || (p.averageRating && p.averageRating >= minRating);
-        return priceMatch && ratingMatch;
-      }
-    );
+    let arr = products.filter((p) => {
+      const priceMatch = p.price >= minPrice && p.price <= maxPrice;
+      const ratingMatch =
+        minRating === 0 || (p.averageRating && p.averageRating >= minRating);
+      return priceMatch && ratingMatch;
+    });
     if (sortBy === "price-low")
       arr = [...arr].sort((a, b) => a.price - b.price);
     else if (sortBy === "price-high")
@@ -98,7 +97,9 @@ function HomePageContent() {
     else if (sortBy === "name")
       arr = [...arr].sort((a, b) => a.name.localeCompare(b.name));
     else if (sortBy === "rating")
-      arr = [...arr].sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+      arr = [...arr].sort(
+        (a, b) => (b.averageRating || 0) - (a.averageRating || 0),
+      );
     else if (sortBy === "newest") {
       arr = [...arr].sort((a, b) => {
         if (!a.createdAt && b.createdAt) return 1;
@@ -158,9 +159,14 @@ function HomePageContent() {
           <div className="flex-1">
             <div className="h-12 bg-gray-200 rounded-lg w-64 animate-pulse mb-6" />
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
-              ))}
+              {Array.from({ length: Math.min(ITEMS_PER_PAGE, 20) }).map(
+                (_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse"
+                  />
+                ),
+              )}
             </div>
           </div>
         </div>
@@ -257,9 +263,9 @@ function HomePageContent() {
                         d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
                         clipRule="evenodd"
                       />
-                  </svg>
-                    </button>
-                  </span>
+                    </svg>
+                  </button>
+                </span>
               )}
               {minRating > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">

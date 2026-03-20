@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const userEmail = session.user.email;
 
     const body = await request.json();
-    const { items, shippingAddress, city, state, zipCode, total } = body;
+    const { items, shippingAddress, city, state, zipCode } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
@@ -60,9 +60,11 @@ export async function POST(request: NextRequest) {
         this.name = "NotFoundError";
       }
     }
+    type ProductForError = { id: string; name: string; stock: number };
+
     class InsufficientStockError extends Error {
-      product: any;
-      constructor(product: any) {
+      product: ProductForError;
+      constructor(product: ProductForError) {
         super(
           `Insufficient stock for ${product.name}. Only ${product.stock} available.`,
         );
@@ -131,7 +133,7 @@ export async function POST(request: NextRequest) {
           include: { items: { include: { product: true } } },
         });
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof NotFoundError) {
         return NextResponse.json(
           { error: "Product not found" },
@@ -165,7 +167,7 @@ export async function POST(request: NextRequest) {
         zipCode: order.zipCode,
       }).catch((err) => {
         console.error(
-          `Failed to send order confirmation email to ${userEmail} for order ${order.id}:`,
+          `Failed to send order confirmation for order ${order.id}:`,
           err,
         );
       });

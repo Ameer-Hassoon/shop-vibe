@@ -1,56 +1,61 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function CreateProductPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    image: '',
-    category: '',
-    stock: '',
+    name: "",
+    description: "",
+    price: "",
+    image: "",
+    category: "",
+    stock: "",
   });
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated' && (session?.user as any).role !== 'ADMIN') {
-      router.push('/');
+    const userRole = (session?.user as { role?: string } | undefined)?.role;
+    if (status === "unauthenticated") {
+      router.push("/login");
+    } else if (status === "authenticated" && userRole !== "ADMIN") {
+      router.push("/");
     }
   }, [status, session, router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to create product');
+        throw new Error(data.error || "Failed to create product");
       }
 
-      router.push('/admin');
-    } catch (err: any) {
-      setError(err.message);
+      router.push("/admin");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create product");
     } finally {
       setLoading(false);
     }
@@ -58,13 +63,19 @@ export default function CreateProductPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link href="/admin" className="text-indigo-600 hover:underline mb-4 inline-block">
+      <Link
+        href="/admin"
+        className="text-indigo-600 hover:underline mb-4 inline-block"
+      >
         &larr; Back to Dashboard
       </Link>
 
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Add New Product</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white shadow-sm rounded-lg p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white shadow-sm rounded-lg p-6"
+      >
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg">
             {error}
@@ -72,7 +83,10 @@ export default function CreateProductPage() {
         )}
 
         <div className="mb-4">
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Product Name
           </label>
           <input
@@ -87,7 +101,10 @@ export default function CreateProductPage() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="category"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Category
           </label>
           <select
@@ -109,7 +126,10 @@ export default function CreateProductPage() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="price"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Price
           </label>
           <input
@@ -126,7 +146,10 @@ export default function CreateProductPage() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="image"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Image URL
           </label>
           <input
@@ -142,7 +165,10 @@ export default function CreateProductPage() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="stock"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Stock Quantity
           </label>
           <input
@@ -158,7 +184,10 @@ export default function CreateProductPage() {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Description
           </label>
           <textarea
@@ -177,7 +206,7 @@ export default function CreateProductPage() {
           disabled={loading}
           className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Create Product'}
+          {loading ? "Creating..." : "Create Product"}
         </button>
       </form>
     </div>

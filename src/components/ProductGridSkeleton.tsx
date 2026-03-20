@@ -1,6 +1,11 @@
 export function ProductGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div
+      role="status"
+      aria-label="Loading products"
+      aria-busy="true"
+      className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+    >
       {Array.from({ length: 12 }).map((_, i) => (
         <div
           key={i}

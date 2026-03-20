@@ -1,19 +1,15 @@
-'use client';
+"use client";
 
-import { useSyncExternalStore } from 'react';
-import { useCartStore } from '@/store/cart';
+import { useCartStore } from "@/store/cart";
 
 export function useCart() {
-  const subscribe = useCartStore.subscribe;
-  const getSnapshot = () => useCartStore.getState();
-
-  const items = useSyncExternalStore(subscribe, getSnapshot).items;
+  const items = useCartStore((state) => state.items);
   const addToCart = useCartStore((state) => state.addToCart);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const clearCart = useCartStore((state) => state.clearCart);
-  const getTotalItems = useCartStore((state) => state.getTotalItems);
-  const getTotalPrice = useCartStore((state) => state.getTotalPrice);
+  const totalItems = useCartStore((state) => state.getTotalItems());
+  const totalPrice = useCartStore((state) => state.getTotalPrice());
 
   return {
     items,
@@ -21,7 +17,7 @@ export function useCart() {
     removeFromCart,
     updateQuantity,
     clearCart,
-    totalItems: getTotalItems(),
-    totalPrice: getTotalPrice(),
+    totalItems,
+    totalPrice,
   };
 }

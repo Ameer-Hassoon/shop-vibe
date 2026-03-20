@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCartStore } from "@/store/cart";
+import { useWishlistStore } from "@/store/wishlist";
 import { Product } from "@/types";
 import Link from "next/link";
 import { StarRating } from "@/components/StarRating";
@@ -34,11 +35,15 @@ export default function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   const addToCart = useCartStore((state) => state.addToCart);
+  const { toggleItem, isInWishlist } = useWishlistStore();
+  const inWishlist = product ? isInWishlist(product.id) : false;
 
   const currentUserId = (session?.user as { id?: string })?.id;
 
@@ -56,7 +61,9 @@ export default function ProductPage() {
         const [reviewsRes, relatedRes] = await Promise.all([
           fetch(`/api/products/${params.id}/reviews`),
           productData.category
-            ? fetch(`/api/products?category=${encodeURIComponent(productData.category)}&limit=20`)
+            ? fetch(
+                `/api/products?category=${encodeURIComponent(productData.category)}&limit=20`,
+              )
             : Promise.resolve(null),
         ]);
 
@@ -72,8 +79,7 @@ export default function ProductPage() {
           related = (productsData.products || [])
             .filter(
               (p: Product) =>
-                p.category === productData.category &&
-                p.id !== productData.id,
+                p.category === productData.category && p.id !== productData.id,
             )
             .slice(0, 4);
         }
@@ -94,15 +100,23 @@ export default function ProductPage() {
     addToCart(p);
   };
 
-  const handleReviewSubmit = () => {
+  const handleReviewSubmit = async () => {
     setShowReviewForm(false);
     setEditingReview(null);
-    fetch(`/api/products/${params.id}/reviews`)
-      .then((res) => res.json())
-      .then((data) => {
-        setReviews(data.reviews || []);
-        setReviewSummary(data.summary);
-      });
+
+    try {
+      const res = await fetch(`/api/products/${params.id}/reviews`);
+      if (!res.ok) {
+        throw new Error(`Failed to refresh reviews: ${res.status}`);
+      }
+      const data = await res.json();
+      setReviews(data.reviews || []);
+      setReviewSummary(data.summary);
+    } catch (error) {
+      console.error("Error refreshing reviews after submit:", error);
+      // Restore UI state so the user can try again.
+      setShowReviewForm(true);
+    }
   };
 
   const handleEditReview = (review: Review) => {
@@ -122,7 +136,10 @@ export default function ProductPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
         <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
-        <Link href="/" className="text-indigo-600 hover:underline mt-4 inline-block">
+        <Link
+          href="/"
+          className="text-indigo-600 hover:underline mt-4 inline-block"
+        >
           Back to products
         </Link>
       </div>
@@ -131,7 +148,10 @@ export default function ProductPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link href="/" className="text-indigo-600 hover:underline mb-4 inline-block">
+      <Link
+        href="/"
+        className="text-indigo-600 hover:underline mb-4 inline-block"
+      >
         &larr; Back to products
       </Link>
 
@@ -157,18 +177,21 @@ export default function ProductPage() {
           <h1 className="text-3xl font-bold text-gray-900 mt-2">
             {product.name}
           </h1>
-          
+
           {reviewSummary && reviewSummary.totalReviews > 0 && (
             <div className="flex items-center gap-2 mt-2">
               <StarRating rating={reviewSummary.averageRating} />
               <span className="text-sm text-gray-600">
-                {reviewSummary.averageRating.toFixed(1)} ({reviewSummary.totalReviews} reviews)
+                {reviewSummary.averageRating.toFixed(1)} (
+                {reviewSummary.totalReviews} reviews)
               </span>
             </div>
           )}
 
           <p className="text-3xl font-bold text-gray-900 mt-4">
-            {product && typeof product.price === "number" && !isNaN(product.price)
+            {product &&
+            typeof product.price === "number" &&
+            !isNaN(product.price)
               ? `$${product.price.toFixed(2)}`
               : "—"}
           </p>
@@ -179,15 +202,31 @@ export default function ProductPage() {
           <div className="mt-6">
             {product.stock > 0 ? (
               <p className="text-green-600 font-medium flex items-center gap-2">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 {product.stock} in stock
               </p>
             ) : (
               <p className="text-red-600 font-medium flex items-center gap-2">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 Out of stock
               </p>
@@ -200,6 +239,29 @@ export default function ProductPage() {
             className="w-full mt-4 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+          </button>
+          <button
+            onClick={() => toggleItem(product.id)}
+            className={`w-full mt-2 px-6 py-3 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 ${
+              inWishlist
+                ? "bg-red-50 text-red-500 border border-red-200 hover:bg-red-100"
+                : "bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100"
+            }`}
+          >
+            <svg
+              className={`w-5 h-5 ${inWishlist ? 'fill-red-500' : ''}`}
+              fill={inWishlist ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+            {inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
           </button>
         </div>
       </div>
@@ -234,19 +296,22 @@ export default function ProductPage() {
               <div className="flex-1 space-y-2">
                 {[5, 4, 3, 2, 1].map((star) => {
                   const count = reviewSummary.distribution[star] || 0;
-                  const percentage = reviewSummary.totalReviews > 0 
-                    ? (count / reviewSummary.totalReviews) * 100 
-                    : 0;
+                  const percentage =
+                    reviewSummary.totalReviews > 0
+                      ? (count / reviewSummary.totalReviews) * 100
+                      : 0;
                   return (
                     <div key={star} className="flex items-center gap-2">
                       <span className="text-sm w-8">{star} star</span>
                       <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-yellow-400" 
+                        <div
+                          className="h-full bg-yellow-400"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <span className="text-sm text-gray-600 w-10">{count}</span>
+                      <span className="text-sm text-gray-600 w-10">
+                        {count}
+                      </span>
                     </div>
                   );
                 })}
@@ -258,10 +323,10 @@ export default function ProductPage() {
         {showReviewForm && (
           <div className="bg-gray-50 rounded-xl p-6 mb-8">
             <h3 className="font-semibold text-gray-900 mb-4">
-              {editingReview ? 'Edit Your Review' : 'Write Your Review'}
+              {editingReview ? "Edit Your Review" : "Write Your Review"}
             </h3>
-            <ReviewForm 
-              productId={product.id} 
+            <ReviewForm
+              productId={product.id}
               editingReview={editingReview}
               onSubmit={handleReviewSubmit}
               onCancel={() => {
@@ -274,13 +339,20 @@ export default function ProductPage() {
 
         {reviews.length === 0 && !showReviewForm ? (
           <p className="text-gray-500 text-center py-8">
-            No reviews yet. {session ? 'Be the first to review!' : <Link href="/login" className="text-indigo-600">Login to write a review</Link>}
+            No reviews yet.{" "}
+            {session ? (
+              "Be the first to review!"
+            ) : (
+              <Link href="/login" className="text-indigo-600">
+                Login to write a review
+              </Link>
+            )}
           </p>
         ) : (
           <div className="space-y-6">
             {reviews.map((review) => (
-              <ReviewCard 
-                key={review.id} 
+              <ReviewCard
+                key={review.id}
                 review={review}
                 currentUserId={currentUserId}
                 onEdit={handleEditReview}

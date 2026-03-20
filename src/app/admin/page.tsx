@@ -55,7 +55,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       setProducts(data.products || []);
       setTotalProducts(data.total || 0);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("Fetch error:", error.message);
       } else {
@@ -87,14 +87,18 @@ export default function AdminDashboard() {
       });
 
       if (!res.ok) {
-        window.alert(`Failed to delete product (status: ${res.status} ${res.statusText})`);
+        window.alert(
+          `Failed to delete product (status: ${res.status} ${res.statusText})`,
+        );
         setProducts(previousProducts);
       } else {
         setProducts((prev) => prev.filter((p) => p.id !== id));
         setTotalProducts((prev) => prev - 1);
       }
     } catch (error) {
-      window.alert(`Failed to delete product: ${error instanceof Error ? error.message : error}`);
+      window.alert(
+        `Failed to delete product: ${error instanceof Error ? error.message : error}`,
+      );
     } finally {
       setDeletingId(null);
     }

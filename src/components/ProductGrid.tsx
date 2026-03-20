@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Product } from "@/types";
 import { ProductCard } from "./ProductCard";
 import { QuickViewCard } from "./QuickViewCard";
@@ -15,37 +15,36 @@ export function ProductGrid({ products }: ProductGridProps) {
   const [productRect, setProductRect] = useState<DOMRect | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleProductHover = useCallback((
-    product: Product,
-    event: React.MouseEvent,
-    rect: DOMRect
-  ) => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-
-    hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredProduct(product);
-      setProductRect(rect);
-      
-      const offsetX = 16;
-      const offsetY = -100;
-      
-      let left = rect.right + offsetX;
-      let top = rect.top + offsetY;
-      
-      if (typeof window !== 'undefined') {
-        if (left + 320 > window.innerWidth - 20) {
-          left = rect.left - 320 - offsetX;
-        }
-        if (top < 20) {
-          top = rect.top;
-        }
+  const handleProductHover = useCallback(
+    (product: Product, event: React.MouseEvent, rect: DOMRect) => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
       }
-      
-      setHoverPosition({ top, left });
-    }, 150);
-  }, []);
+
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredProduct(product);
+        setProductRect(rect);
+
+        const offsetX = 16;
+        const offsetY = -100;
+
+        let left = rect.right + offsetX;
+        let top = rect.top + offsetY;
+
+        if (typeof window !== "undefined") {
+          if (left + 320 > window.innerWidth - 20) {
+            left = rect.left - 320 - offsetX;
+          }
+          if (top < 20) {
+            top = rect.top;
+          }
+        }
+
+        setHoverPosition({ top, left });
+      }, 150);
+    },
+    [],
+  );
 
   const handleProductLeave = useCallback(() => {
     if (hoverTimeoutRef.current) {
@@ -53,6 +52,15 @@ export function ProductGrid({ products }: ProductGridProps) {
     }
     setHoveredProduct(null);
     setProductRect(null);
+  }, []);
+
+  // Ensure we clear timeouts when the component unmounts to avoid state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -67,11 +75,11 @@ export function ProductGrid({ products }: ProductGridProps) {
             }}
             onMouseLeave={handleProductLeave}
           >
-            <ProductCard 
-            product={product} 
-            rating={product.averageRating} 
-            reviewCount={product.reviewCount} 
-          />
+            <ProductCard
+              product={product}
+              rating={product.averageRating || 0}
+              reviewCount={product.reviewCount || 0}
+            />
           </div>
         ))}
       </div>

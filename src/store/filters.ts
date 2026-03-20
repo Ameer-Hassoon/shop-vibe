@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export const MAX_PRICE = 1000;
+
 interface FilterState {
   categories: string[];
   minPrice: number;
@@ -27,7 +29,7 @@ export const useFilters = create<FilterState>()(
     (set) => ({
       categories: [],
       minPrice: 0,
-      maxPrice: 1000,
+      maxPrice: MAX_PRICE,
       minRating: 0,
       inStockOnly: false,
       sortBy: "newest",

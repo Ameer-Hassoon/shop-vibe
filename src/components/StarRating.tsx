@@ -1,24 +1,26 @@
-'use client';
+"use client";
 
 interface StarRatingProps {
   rating: number;
   maxRating?: number;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   interactive?: boolean;
+  id?: string;
   onChange?: (rating: number) => void;
 }
 
 export function StarRating({
   rating,
   maxRating = 5,
-  size = 'md',
+  size = "md",
   interactive = false,
+  id,
   onChange,
 }: StarRatingProps) {
   const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-5 h-5',
-    lg: 'w-6 h-6',
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
   };
 
   const handleClick = (index: number) => {
@@ -32,16 +34,20 @@ export function StarRating({
       {Array.from({ length: maxRating }).map((_, index) => {
         const filled = index < Math.floor(rating);
         const partial = index === Math.floor(rating) && rating % 1 > 0;
-        const starClass = `${sizeClasses[size]} ${filled ? 'text-yellow-400' : partial ? 'text-yellow-400' : 'text-gray-300'}`;
-        
+        const starClass = `${sizeClasses[size]} ${filled || partial ? "text-yellow-400" : "text-gray-300"}`;
+
         const star = (
           <svg
             viewBox="0 0 24 24"
-            fill={filled ? 'currentColor' : 'none'}
+            fill={filled || partial ? "currentColor" : "none"}
             stroke="currentColor"
             strokeWidth="2"
             className={starClass}
-            style={partial ? { clipPath: `inset(0 ${100 - (rating % 1) * 100}% 0 0)` } : undefined}
+            style={
+              partial
+                ? { clipPath: `inset(0 ${100 - (rating % 1) * 100}% 0 0)` }
+                : undefined
+            }
           >
             <path
               strokeLinecap="round"
@@ -55,8 +61,10 @@ export function StarRating({
           return (
             <button
               key={index}
+              id={index === 0 ? id : undefined}
               type="button"
               onClick={() => handleClick(index)}
+              aria-label={`Rate ${index + 1} of ${maxRating} stars`}
               className={`${sizeClasses[size]} cursor-pointer hover:scale-110 transition-transform`}
             >
               {star}

@@ -9,15 +9,14 @@ import { useWishlistStore } from "@/store/wishlist";
 
 interface ProductCardProps {
   product: Product;
-  rating?: number;
-  reviewCount?: number;
 }
 
-export function ProductCard({ product, rating = 0, reviewCount = 0 }: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addToCart);
   const { toggleItem, isInWishlist } = useWishlistStore();
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const inWishlist = isInWishlist(product.id);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -28,31 +27,36 @@ export function ProductCard({ product, rating = 0, reviewCount = 0 }: ProductCar
   }, []);
 
   return (
-    <div 
+    <div
       className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-indigo-300 hover:shadow-lg transition-all"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
       <div className="relative">
         <Link href={`/product/${product.id}`} className="block">
-          <div 
+          <div
             className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer"
             onMouseMove={handleMouseMove}
           >
-            <Image
-              src={product.image}
-              alt={product.name}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-              className={`object-cover transition-transform duration-300 ease-out ${isHovering ? 'scale-125' : 'scale-100'}`}
-              style={{
-                transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
-              }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "https://via.placeholder.com/400x400?text=No+Image";
-              }}
-            />
+            {imageError ? (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+                <span className="text-xs">No image</span>
+              </div>
+            ) : (
+              <Image
+                src={product.image}
+                alt={product.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                className={`object-cover transition-transform duration-300 ease-out ${isHovering ? "scale-125" : "scale-100"}`}
+                style={{
+                  transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
+                }}
+                onError={() => {
+                  setImageError(true);
+                }}
+              />
+            )}
             <div className="absolute top-2 left-2 z-10">
               <span className="px-2 py-1 bg-white/90 text-xs font-medium text-gray-700 rounded-md">
                 {product.category}
@@ -69,11 +73,12 @@ export function ProductCard({ product, rating = 0, reviewCount = 0 }: ProductCar
             e.stopPropagation();
             toggleItem(product.id);
           }}
+          aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
           className="absolute top-2 right-2 z-20 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
         >
           <svg
-            className={`w-5 h-5 ${inWishlist ? 'text-red-500 fill-red-500' : 'text-gray-600'}`}
-            fill={inWishlist ? 'currentColor' : 'none'}
+            className={`w-5 h-5 ${inWishlist ? "text-red-500 fill-red-500" : "text-gray-600"}`}
+            fill={inWishlist ? "currentColor" : "none"}
             stroke="currentColor"
             viewBox="0 0 24 24"
           >

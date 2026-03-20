@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
 
-    const boughtTogether = await prisma.orderItem.findMany({
+    const boughtTogether = await prisma.orderItem.groupBy({
+      by: ["productId"],
       where: {
         order: {
           items: {
@@ -16,19 +17,20 @@ export async function GET(
           },
         },
       },
-      select: { productId: true },
-      distinct: ['productId'],
+      _count: { _all: true },
+      orderBy: { _count: { _all: "desc" } },
+      take: 5,
     });
 
     const relatedProductIds = boughtTogether
-      .filter((item) => item.productId !== id)
-      .slice(0, 4)
-      .map((item) => item.productId);
+      .map((item) => item.productId)
+      .filter((productId) => productId !== id)
+      .slice(0, 4);
 
     const trendingProducts = await prisma.orderItem.groupBy({
-      by: ['productId'],
+      by: ["productId"],
       _count: { productId: true },
-      orderBy: { _count: { productId: 'desc' } },
+      orderBy: { _count: { productId: "desc" } },
       take: 8,
     });
 
@@ -40,11 +42,25 @@ export async function GET(
     const [boughtTogetherProducts, trending] = await Promise.all([
       prisma.product.findMany({
         where: { id: { in: relatedProductIds } },
-        select: { id: true, name: true, price: true, image: true, category: true, stock: true },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          image: true,
+          category: true,
+          stock: true,
+        },
       }),
       prisma.product.findMany({
         where: { id: { in: trendingIds } },
-        select: { id: true, name: true, price: true, image: true, category: true, stock: true },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          image: true,
+          category: true,
+          stock: true,
+        },
       }),
     ]);
 
@@ -53,7 +69,10 @@ export async function GET(
       trending,
     });
   } catch (error) {
-    console.error('Recommendations error:', error);
-    return NextResponse.json({ error: 'Failed to get recommendations' }, { status: 500 });
+    console.error("Recommendations error:", error);
+    return NextResponse.json(
+      { error: "Failed to get recommendations" },
+      { status: 500 },
+    );
   }
 }

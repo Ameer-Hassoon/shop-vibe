@@ -1,46 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { hash } from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { hash } from "bcryptjs";
+import { prisma } from "@/lib/prisma";
+import {
+  createInMemoryRateLimiter,
+  getClientIpFromRequest,
+} from "@/lib/rateLimit";
 
-const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const MAX_REQUESTS = 5;
 
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const record = rateLimitMap.get(ip);
-
-  if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
-    rateLimitMap.set(ip, { count: 1, timestamp: now });
-    return false;
-  }
-
-  if (record.count >= MAX_REQUESTS) {
-    return true;
-  }
-
-  record.count++;
-  return false;
-}
-
-function getClientIP(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
-  }
-  return request.headers.get('x-real-ip') || 'unknown';
-}
+const { isRateLimited, increment } = createInMemoryRateLimiter({
+  windowMs: RATE_LIMIT_WINDOW,
+  maxAttempts: MAX_REQUESTS,
+});
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordMinLength = 8;
 
 export async function POST(request: NextRequest) {
-  const clientIP = getClientIP(request);
+  const clientIP = getClientIpFromRequest(request);
 
   if (isRateLimited(clientIP)) {
     return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      { status: 429 }
+      { error: "Too many requests. Please try again later." },
+      { status: 429 },
     );
   }
 
@@ -49,23 +32,26 @@ export async function POST(request: NextRequest) {
     const { name, email, password } = body;
 
     if (!email || !password) {
+      increment(clientIP);
       return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
+        { error: "Email and password are required" },
+        { status: 400 },
       );
     }
 
-    if (typeof email !== 'string' || !emailRegex.test(email)) {
+    if (typeof email !== "string" || !emailRegex.test(email)) {
+      increment(clientIP);
       return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
+        { error: "Invalid email format" },
+        { status: 400 },
       );
     }
 
-    if (typeof password !== 'string' || password.length < passwordMinLength) {
+    if (typeof password !== "string" || password.length < passwordMinLength) {
+      increment(clientIP);
       return NextResponse.json(
         { error: `Password must be at least ${passwordMinLength} characters` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -74,9 +60,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
+      increment(clientIP);
       return NextResponse.json(
-        { error: 'User already exists' },
-        { status: 400 }
+        { error: "User already exists" },
+        { status: 400 },
       );
     }
 
@@ -87,18 +74,19 @@ export async function POST(request: NextRequest) {
         name: name?.trim() || null,
         email,
         password: hashedPassword,
-        role: 'USER',
+        role: "USER",
       },
     });
 
     return NextResponse.json(
-      { message: 'User created successfully', userId: user.id },
-      { status: 201 }
+      { message: "User created successfully", userId: user.id },
+      { status: 201 },
     );
   } catch (error) {
+    console.error("Error creating user:", error);
     return NextResponse.json(
-      { error: 'Failed to create user' },
-      { status: 500 }
+      { error: "Failed to create user" },
+      { status: 500 },
     );
   }
 }

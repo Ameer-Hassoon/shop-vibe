@@ -1,49 +1,38 @@
-import NextAuth, { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { compare } from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import NextAuth, { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { compare } from "bcryptjs";
+import { prisma } from "@/lib/prisma";
+import {
+  createInMemoryRateLimiter,
+  getClientIpFromRequest,
+} from "@/lib/rateLimit";
 
-const loginRateLimitMap = new Map<string, { count: number; timestamp: number }>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 10;
 
-function isLoginRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const record = loginRateLimitMap.get(ip);
-
-  if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
-    loginRateLimitMap.set(ip, { count: 1, timestamp: now });
-    return false;
-  }
-
-  if (record.count >= MAX_LOGIN_ATTEMPTS) {
-    return true;
-  }
-
-  record.count++;
-  return false;
-}
+const { isRateLimited, increment } = createInMemoryRateLimiter({
+  windowMs: RATE_LIMIT_WINDOW,
+  maxAttempts: MAX_LOGIN_ATTEMPTS,
+});
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'credentials',
+      name: "credentials",
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        const forwarded = req?.headers?.['x-forwarded-for'];
-        const clientIP = typeof forwarded === 'string' 
-          ? forwarded.split(',')[0].trim() 
-          : req?.headers?.['x-real-ip'] || 'unknown';
+        const clientIP = getClientIpFromRequest(req);
 
-        if (isLoginRateLimited(clientIP)) {
-          return null;
+        if (isRateLimited(clientIP)) {
+          console.warn("Login rate limit exceeded for IP", clientIP);
+          throw new Error("RateLimited: too many login attempts");
         }
 
         const user = await prisma.user.findUnique({
@@ -51,12 +40,17 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
+          increment(clientIP);
           return null;
         }
 
-        const isPasswordValid = await compare(credentials.password, user.password);
+        const isPasswordValid = await compare(
+          credentials.password,
+          user.password,
+        );
 
         if (!isPasswordValid) {
+          increment(clientIP);
           return null;
         }
 
@@ -79,17 +73,19 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string; role?: string }).id = token.id as string;
-        (session.user as { id?: string; role?: string }).role = token.role as string;
+        (session.user as { id?: string; role?: string }).id =
+          token.id as string;
+        (session.user as { id?: string; role?: string }).role =
+          token.role as string;
       }
       return session;
     },
   },
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

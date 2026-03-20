@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { Product } from '@/types';
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
+import { Product } from "@/types";
 
 export default function EditProductPage() {
   const { data: session, status } = useSession();
@@ -12,31 +12,33 @@ export default function EditProductPage() {
   const params = useParams();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    image: '',
-    category: '',
-    stock: '',
+    name: "",
+    description: "",
+    price: "",
+    image: "",
+    category: "",
+    stock: "",
   });
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated' && (session?.user as any).role !== 'ADMIN') {
-      router.push('/');
+    const userRole = (session?.user as { role?: string } | undefined)?.role;
+    if (status === "unauthenticated") {
+      router.push("/login");
+    } else if (status === "authenticated" && userRole !== "ADMIN") {
+      router.push("/");
     }
   }, [status, session, router]);
 
   useEffect(() => {
-    if (status !== 'authenticated' || (session?.user as any).role !== 'ADMIN') return;
+    const userRole = (session?.user as { role?: string } | undefined)?.role;
+    if (status !== "authenticated" || userRole !== "ADMIN") return;
     const fetchProduct = async () => {
       try {
         const res = await fetch(`/api/products/${params.id}`);
-        if (!res.ok) throw new Error('Product not found');
-        
+        if (!res.ok) throw new Error("Product not found");
+
         const product: Product = await res.json();
         setFormData({
           name: product.name,
@@ -46,8 +48,10 @@ export default function EditProductPage() {
           category: product.category,
           stock: (product.stock || 0).toString(),
         });
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch product",
+        );
       } finally {
         setFetching(false);
       }
@@ -56,30 +60,34 @@ export default function EditProductPage() {
     fetchProduct();
   }, [params.id, status, session]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const res = await fetch(`/api/products/${params.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to update product');
+        throw new Error(data.error || "Failed to update product");
       }
 
-      router.push('/admin');
-    } catch (err: any) {
-      setError(err.message);
+      router.push("/admin");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update product");
     } finally {
       setLoading(false);
     }
@@ -97,7 +105,10 @@ export default function EditProductPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
         <h1 className="text-2xl font-bold text-red-600">{error}</h1>
-        <Link href="/admin" className="text-indigo-600 hover:underline mt-4 inline-block">
+        <Link
+          href="/admin"
+          className="text-indigo-600 hover:underline mt-4 inline-block"
+        >
           Back to Dashboard
         </Link>
       </div>
@@ -106,13 +117,19 @@ export default function EditProductPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link href="/admin" className="text-indigo-600 hover:underline mb-4 inline-block">
+      <Link
+        href="/admin"
+        className="text-indigo-600 hover:underline mb-4 inline-block"
+      >
         &larr; Back to Dashboard
       </Link>
 
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Edit Product</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white shadow-sm rounded-lg p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white shadow-sm rounded-lg p-6"
+      >
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg">
             {error}
@@ -120,7 +137,10 @@ export default function EditProductPage() {
         )}
 
         <div className="mb-4">
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Product Name
           </label>
           <input
@@ -135,7 +155,10 @@ export default function EditProductPage() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="category"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Category
           </label>
           <select
@@ -157,7 +180,10 @@ export default function EditProductPage() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="price"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Price
           </label>
           <input
@@ -174,7 +200,10 @@ export default function EditProductPage() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="image"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Image URL
           </label>
           <input
@@ -190,7 +219,10 @@ export default function EditProductPage() {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="stock"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Stock Quantity
           </label>
           <input
@@ -206,7 +238,10 @@ export default function EditProductPage() {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Description
           </label>
           <textarea
@@ -225,7 +260,7 @@ export default function EditProductPage() {
           disabled={loading}
           className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
         >
-          {loading ? 'Updating...' : 'Update Product'}
+          {loading ? "Updating..." : "Update Product"}
         </button>
       </form>
     </div>

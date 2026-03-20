@@ -1,24 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = (session.user as { id?: string }).id;
     const { id } = await params;
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const order = await prisma.order.findUnique({
@@ -47,52 +48,82 @@ export async function GET(
     });
 
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (order.userId !== userId && (session.user as { role?: string }).role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      order.userId !== userId &&
+      (session.user as { role?: string }).role !== "ADMIN"
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json(order);
   } catch (error) {
-    console.error('Get order error:', error);
-    return NextResponse.json({ error: 'Failed to get order' }, { status: 500 });
+    console.error("Get order error:", error);
+    return NextResponse.json({ error: "Failed to get order" }, { status: 500 });
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user || (session.user as { role?: string }).role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if ((session.user as { role?: string }).role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
-    const { status, trackingNumber, carrier, estimatedDelivery } = await request.json();
+    const { status, trackingNumber, carrier, estimatedDelivery } =
+      await request.json();
 
-    const validStatuses = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
+    const validStatuses = [
+      "PENDING",
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+      "REFUNDED",
+    ];
     if (status && !validStatuses.includes(status)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    const order = await prisma.order.update({
-      where: { id },
-      data: {
-        ...(status && { status }),
-        ...(trackingNumber !== undefined && { trackingNumber }),
-        ...(carrier !== undefined && { carrier }),
-        ...(estimatedDelivery !== undefined && { estimatedDelivery: new Date(estimatedDelivery) }),
-      },
-    });
+    try {
+      const order = await prisma.order.update({
+        where: { id },
+        data: {
+          ...(status && { status }),
+          ...(trackingNumber !== undefined && { trackingNumber }),
+          ...(carrier !== undefined && { carrier }),
+          ...(estimatedDelivery != null && {
+            estimatedDelivery: new Date(estimatedDelivery),
+          }),
+        },
+      });
 
-    return NextResponse.json(order);
+      return NextResponse.json(order);
+    } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === "P2025"
+      ) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
+      throw error;
+    }
   } catch (error) {
-    console.error('Update order error:', error);
-    return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
+    console.error("Update order error:", error);
+    return NextResponse.json(
+      { error: "Failed to update order" },
+      { status: 500 },
+    );
   }
 }

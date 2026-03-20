@@ -30,23 +30,27 @@ A full-featured e-commerce web application built with Next.js, TypeScript, Tailw
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your database URL and secrets
 ```
 
 3. Set up the database:
+
 ```bash
 npx prisma db push
 npm run db:seed
 ```
 
 4. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -55,19 +59,21 @@ npm run dev
 
 ## Default Admin Account
 
+This seed data is for local development only. In production, set `ADMIN_PASSWORD` in your environment to a strong password before running `npm run db:seed`.
+
 After seeding the database, you can login with:
 
 - **Email**: admin@shop.com
-- **Password**: admin123
+- **Password**: (see `ADMIN_PASSWORD`, or generated random password in seed logs)
 
 ## API Routes
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/products | Get all products |
-| POST | /api/products | Create product (admin) |
-| GET | /api/products/[id] | Get single product |
-| PUT | /api/products/[id] | Update product (admin) |
+| Method | Endpoint           | Description            |
+| ------ | ------------------ | ---------------------- |
+| GET    | /api/products      | Get all products       |
+| POST   | /api/products      | Create product (admin) |
+| GET    | /api/products/[id] | Get single product     |
+| PUT    | /api/products/[id] | Update product (admin) |
 | DELETE | /api/products/[id] | Delete product (admin) |
 
 ## Project Structure

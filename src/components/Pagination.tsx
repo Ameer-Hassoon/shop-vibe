@@ -22,8 +22,7 @@ export function Pagination({
       </button>
       {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
         let page = i + 1;
-        if (totalPages > 7 && currentPage > 4)
-          page = currentPage - 3 + i;
+        if (totalPages > 7 && currentPage > 4) page = currentPage - 3 + i;
         if (totalPages > 7 && currentPage > totalPages - 3)
           page = totalPages - 6 + i;
         return page <= totalPages ? (
@@ -38,7 +37,7 @@ export function Pagination({
       })}
       <button
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-        disabled={currentPage === totalPages}
+        disabled={currentPage >= Math.max(0, totalPages)}
         className="px-3 py-2 border rounded-lg disabled:opacity-50"
       >
         Next
