@@ -17,8 +17,8 @@ export async function GET(
           },
         },
       },
-      _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
+      _count: { productId: true },
+      orderBy: { _count: { productId: "desc" } },
       take: 5,
     });
 

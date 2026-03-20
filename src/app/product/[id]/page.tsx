@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
+import { useLanguage } from "@/store/language";
 import { Product } from "@/types";
 import Link from "next/link";
 import { StarRating } from "@/components/StarRating";
@@ -32,6 +33,7 @@ interface ReviewSummary {
 export default function ProductPage() {
   const params = useParams();
   const { data: session } = useSession();
+  const { t, translateCategory } = useLanguage();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -135,12 +137,12 @@ export default function ProductPage() {
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("common.noProducts")}</h1>
         <Link
           href="/"
           className="text-indigo-600 hover:underline mt-4 inline-block"
         >
-          Back to products
+          {t("product.backToProducts")}
         </Link>
       </div>
     );
@@ -152,7 +154,7 @@ export default function ProductPage() {
         href="/"
         className="text-indigo-600 hover:underline mb-4 inline-block"
       >
-        &larr; Back to products
+        &larr; {t("product.backToProducts")}
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
@@ -172,7 +174,7 @@ export default function ProductPage() {
 
         <div>
           <span className="text-sm text-indigo-600 font-medium uppercase">
-            {product.category}
+            {translateCategory(product.category)}
           </span>
           <h1 className="text-3xl font-bold text-gray-900 mt-2">
             {product.name}
@@ -183,7 +185,7 @@ export default function ProductPage() {
               <StarRating rating={reviewSummary.averageRating} />
               <span className="text-sm text-gray-600">
                 {reviewSummary.averageRating.toFixed(1)} (
-                {reviewSummary.totalReviews} reviews)
+                {reviewSummary.totalReviews} {t("product.reviews")})
               </span>
             </div>
           )}
@@ -213,7 +215,7 @@ export default function ProductPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                {product.stock} in stock
+                {product.stock} {t("product.inStock")}
               </p>
             ) : (
               <p className="text-red-600 font-medium flex items-center gap-2">
@@ -228,7 +230,7 @@ export default function ProductPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                Out of stock
+                {t("product.outOfStock")}
               </p>
             )}
           </div>
@@ -238,7 +240,7 @@ export default function ProductPage() {
             disabled={product.stock <= 0}
             className="w-full mt-4 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+            {product.stock > 0 ? t("product.addToCart") : t("product.outOfStock")}
           </button>
           <button
             onClick={() => toggleItem(product.id)}
@@ -261,7 +263,7 @@ export default function ProductPage() {
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
               />
             </svg>
-            {inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+            {inWishlist ? t("wishlist.remove") : t("wishlist.add")}
           </button>
         </div>
       </div>
@@ -269,14 +271,14 @@ export default function ProductPage() {
       <div className="border-t pt-12">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-gray-900">
-            Customer Reviews ({reviewSummary?.totalReviews || 0})
+            {t("product.reviews")} ({reviewSummary?.totalReviews || 0})
           </h2>
           {session && !showReviewForm && (
             <button
               onClick={() => setShowReviewForm(true)}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
-              Write a Review
+              {t("product.writeReview")}
             </button>
           )}
         </div>
@@ -290,7 +292,7 @@ export default function ProductPage() {
                 </p>
                 <StarRating rating={reviewSummary.averageRating} size="lg" />
                 <p className="text-sm text-gray-600 mt-1">
-                  {reviewSummary.totalReviews} reviews
+                  {reviewSummary.totalReviews} {t("product.reviews")}
                 </p>
               </div>
               <div className="flex-1 space-y-2">
@@ -323,7 +325,7 @@ export default function ProductPage() {
         {showReviewForm && (
           <div className="bg-gray-50 rounded-xl p-6 mb-8">
             <h3 className="font-semibold text-gray-900 mb-4">
-              {editingReview ? "Edit Your Review" : "Write Your Review"}
+              {editingReview ? t("product.editReview") : t("product.writeReview")}
             </h3>
             <ReviewForm
               productId={product.id}
@@ -339,12 +341,12 @@ export default function ProductPage() {
 
         {reviews.length === 0 && !showReviewForm ? (
           <p className="text-gray-500 text-center py-8">
-            No reviews yet.{" "}
+            {t("product.noReviews")}{" "}
             {session ? (
-              "Be the first to review!"
+              t("product.beFirst")
             ) : (
               <Link href="/login" className="text-indigo-600">
-                Login to write a review
+                {t("nav.login")}
               </Link>
             )}
           </p>
@@ -365,7 +367,7 @@ export default function ProductPage() {
       {relatedProducts.length > 0 && (
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Related Products
+            {t("product.related")}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {relatedProducts.map((related) => (

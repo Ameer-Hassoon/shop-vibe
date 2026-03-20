@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const clientIP = getClientIpFromRequest(req);
+        const clientIP = getClientIpFromRequest(req as unknown as Request);
 
         if (isRateLimited(clientIP)) {
           console.warn("Login rate limit exceeded for IP", clientIP);

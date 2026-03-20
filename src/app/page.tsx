@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFilters } from "@/store/filters";
+import { useLanguage } from "@/store/language";
 import { Product } from "@/types";
 import { ProductGrid } from "@/components/ProductGrid";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
@@ -12,9 +13,37 @@ import { Pagination } from "@/components/Pagination";
 const ITEMS_PER_PAGE = 20;
 const MAX_PRICE = 1000;
 
+const CATEGORY_KEY_TO_NAME: Record<string, string> = {
+  "cat.electronics": "Electronics",
+  "cat.computers": "Computers & Laptops",
+  "cat.phones": "Phones & Tablets",
+  "cat.cameras": "Cameras & Photography",
+  "cat.tv": "TV & Home Entertainment",
+  "cat.audio": "Audio & Headphones",
+  "cat.clothing": "Clothing",
+  "cat.shoes": "Shoes & Footwear",
+  "cat.jewelry": "Jewelry & Watches",
+  "cat.bags": "Bags & Backpacks",
+  "cat.home": "Home & Garden",
+  "cat.kitchen": "Kitchen & Dining",
+  "cat.furniture": "Furniture",
+  "cat.lighting": "Lighting",
+  "cat.sports": "Sports & Outdoors",
+  "cat.fitness": "Fitness Equipment",
+  "cat.cycling": "Cycling",
+  "cat.camping": "Camping & Hiking",
+  "cat.books": "Books",
+  "cat.toys": "Toys & Games",
+  "cat.beauty": "Beauty & Personal Care",
+  "cat.automotive": "Automotive",
+  "cat.pets": "Pet Supplies",
+  "cat.office": "Office Supplies",
+};
+
 function HomePageContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
+  const { t } = useLanguage();
   const {
     categories,
     minPrice,
@@ -51,7 +80,8 @@ function HomePageContent() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const categoryParam = categories.length > 0 ? categories.join(",") : "";
+    const categoryNames = categories.map(cat => CATEGORY_KEY_TO_NAME[cat] || cat);
+    const categoryParam = categoryNames.length > 0 ? categoryNames.join(",") : "";
     const inStockParam = inStockOnly ? "&inStock=true" : "";
     const url = `/api/products?search=${encodeURIComponent(searchQuery)}${categoryParam ? `&category=${categoryParam}` : ""}${inStockParam}&sortBy=${sortBy}&page=1&limit=1000`;
     fetch(url, { cache: "no-store" })
@@ -189,16 +219,16 @@ function HomePageContent() {
                     <span className="text-indigo-600">{searchQuery}</span>&quot;
                   </h1>
                   <p className="text-gray-500 mt-1">
-                    {totalProducts} products found
+                    {totalProducts} {t("product.results")}
                   </p>
                 </>
               ) : (
                 <>
                   <h1 className="text-2xl font-bold text-gray-900">
-                    All Products
+                    {t("product.allProducts")}
                   </h1>
                   <p className="text-gray-500 mt-1">
-                    {totalProducts} products available
+                    {totalProducts} {t("product.results")}
                   </p>
                 </>
               )}
@@ -208,11 +238,11 @@ function HomePageContent() {
               onChange={(e) => setSortBy(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
-              <option value="newest">Newest First</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="name">Name: A to Z</option>
-              <option value="rating">Highest Rated</option>
+              <option value="newest">{t("sort.newest")}</option>
+              <option value="price-low">{t("sort.priceLow")}</option>
+              <option value="price-high">{t("sort.priceHigh")}</option>
+              <option value="name">{t("sort.name")}</option>
+              <option value="rating">{t("sort.rating")}</option>
             </select>
           </div>
 
@@ -223,7 +253,7 @@ function HomePageContent() {
                   key={cat}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium"
                 >
-                  {cat}
+                  {t(cat)}
                   <button
                     onClick={() => toggleCategory(cat)}
                     className="hover:bg-indigo-200 rounded-full p-0.5"
@@ -310,12 +340,12 @@ function HomePageContent() {
                   d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <p className="text-gray-500 text-lg">No products found</p>
+              <p className="text-gray-500 text-lg">{t("common.noProducts")}</p>
               <button
                 onClick={reset}
                 className="text-indigo-600 hover:underline mt-2"
               >
-                Clear all filters
+                {t("common.clearFilters")}
               </button>
             </div>
           ) : (

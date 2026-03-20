@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/store/cart";
+import { useLanguage } from "@/store/language";
 import { Product } from "@/types";
 
 function WishlistItemImage({ src, alt }: { src: string; alt: string }) {
@@ -39,6 +40,7 @@ interface WishlistItem {
 
 export default function WishlistPage() {
   const { data: session, status } = useSession();
+  const { t, translateCategory } = useLanguage();
   const router = useRouter();
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function WishlistPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-8">
-        My Wishlist ({wishlist.length})
+        {t("wishlist.title")} ({wishlist.length})
       </h1>
 
       {wishlist.length === 0 ? (
@@ -125,9 +127,9 @@ export default function WishlistPage() {
               d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
             />
           </svg>
-          <p className="text-gray-500 text-lg mb-4">Your wishlist is empty</p>
+          <p className="text-gray-500 text-lg mb-4">{t("wishlist.empty")}</p>
           <Link href="/" className="text-indigo-600 hover:underline">
-            Browse products
+            {t("wishlist.browse")}
           </Link>
         </div>
       ) : (
@@ -152,7 +154,7 @@ export default function WishlistPage() {
                   </h3>
                 </Link>
                 <p className="text-sm text-gray-500 mt-1">
-                  {item.product.category}
+                  {translateCategory(item.product.category)}
                 </p>
                 <p className="text-xl font-bold text-gray-900 mt-2">
                   ${item.product.price.toFixed(2)}
@@ -163,7 +165,7 @@ export default function WishlistPage() {
                     disabled={item.product.stock <= 0}
                     className="flex-1 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
                   >
-                    {item.product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+                    {item.product.stock > 0 ? t("product.addToCart") : t("product.outOfStock")}
                   </button>
                   <button
                     onClick={() => removeFromWishlist(item.product.id)}

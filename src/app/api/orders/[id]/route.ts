@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { Prisma } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
@@ -112,7 +112,7 @@ export async function PUT(
       return NextResponse.json(order);
     } catch (error) {
       if (
-        error instanceof PrismaClientKnownRequestError &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2025"
       ) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });

@@ -2,38 +2,40 @@
 
 import { useState } from "react";
 import { useFilters, MAX_PRICE } from "@/store/filters";
+import { useLanguage } from "@/store/language";
 import { DualRangeSlider } from "./DualRangeSlider";
 import { StarRating } from "./StarRating";
 
-const CATEGORIES = [
-  "Electronics",
-  "Computers & Laptops",
-  "Phones & Tablets",
-  "Cameras & Photography",
-  "TV & Home Entertainment",
-  "Audio & Headphones",
-  "Clothing",
-  "Shoes & Footwear",
-  "Jewelry & Watches",
-  "Bags & Backpacks",
-  "Home & Garden",
-  "Kitchen & Dining",
-  "Furniture",
-  "Lighting",
-  "Sports & Outdoors",
-  "Fitness Equipment",
-  "Cycling",
-  "Camping & Hiking",
-  "Books",
-  "Toys & Games",
-  "Beauty & Personal Care",
-  "Automotive",
-  "Pet Supplies",
-  "Office Supplies",
-];
+const CATEGORY_KEYS = [
+  "cat.electronics",
+  "cat.computers",
+  "cat.phones",
+  "cat.cameras",
+  "cat.tv",
+  "cat.audio",
+  "cat.clothing",
+  "cat.shoes",
+  "cat.jewelry",
+  "cat.bags",
+  "cat.home",
+  "cat.kitchen",
+  "cat.furniture",
+  "cat.lighting",
+  "cat.sports",
+  "cat.fitness",
+  "cat.cycling",
+  "cat.camping",
+  "cat.books",
+  "cat.toys",
+  "cat.beauty",
+  "cat.automotive",
+  "cat.pets",
+  "cat.office",
+] as const;
 
 export function FilterSidebar() {
   const [mounted] = useState(() => typeof window !== "undefined");
+  const { t } = useLanguage();
 
   const {
     categories,
@@ -66,7 +68,7 @@ export function FilterSidebar() {
 
   return (
     <aside className="w-72 flex-shrink-0 hidden lg:block">
-      <div className="bg-white rounded-xl border border-gray-200 p-5 sticky top-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-5 sticky top-4 filter-sidebar">
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
             <svg
@@ -82,27 +84,27 @@ export function FilterSidebar() {
                 d="M4 6h16M4 10h16M4 14h16M4 18h16"
               />
             </svg>
-            Filters
+            {t("filter.title")}
           </h2>
           {hasFilters && (
             <button
               onClick={reset}
               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
             >
-              Clear all
+              {t("filter.clearAll")}
             </button>
           )}
         </div>
 
         <div className="max-h-80 overflow-y-auto space-y-1 mb-6">
-          {CATEGORIES.map((cat) => (
+          {CATEGORY_KEYS.map((catKey) => (
             <button
-              key={cat}
-              onClick={() => toggleCategory(cat)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-left ${categories.includes(cat) ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
+              key={catKey}
+              onClick={() => toggleCategory(catKey)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-left ${categories.includes(catKey) ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
             >
-              <span className="text-sm">{cat}</span>
-              {categories.includes(cat) && (
+              <span className="text-sm">{t(catKey)}</span>
+              {categories.includes(catKey) && (
                 <svg
                   className="w-4 h-4"
                   fill="currentColor"
@@ -134,7 +136,7 @@ export function FilterSidebar() {
                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            Price Range
+            {t("filter.price")}
           </h3>
           <DualRangeSlider
             min={minPrice}
@@ -159,7 +161,7 @@ export function FilterSidebar() {
                 d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
               />
             </svg>
-            Rating
+            {t("filter.rating")}
           </h3>
           <div className="space-y-2">
             {[4, 3, 2, 1].map((rating) => (
@@ -169,21 +171,21 @@ export function FilterSidebar() {
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${minRating === rating ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
               >
                 <StarRating rating={rating} size="sm" />
-                <span className="text-sm">& up</span>
+                <span className="text-sm">{t("filter.up")}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div className="mt-6 pt-4 border-t border-gray-100">
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-pointer no-hover-effect">
             <input
               type="checkbox"
               checked={inStockOnly}
               onChange={(e) => setInStockOnly(e.target.checked)}
               className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
-            <span className="font-medium text-gray-900">In Stock Only</span>
+            <span className="font-medium text-gray-900">{t("filter.inStock")}</span>
           </label>
         </div>
       </div>

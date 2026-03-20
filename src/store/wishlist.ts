@@ -5,23 +5,50 @@ import { persist } from "zustand/middleware";
 
 interface WishlistState {
   items: string[];
+  isHydrated: boolean;
   addItem: (productId: string) => Promise<void>;
   removeItem: (productId: string) => Promise<void>;
   toggleItem: (productId: string) => Promise<void>;
   isInWishlist: (productId: string) => boolean;
   fetchWishlist: () => Promise<void>;
+  syncWithServer: () => Promise<void>;
 }
 
 export const useWishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
       items: [],
+      isHydrated: false,
+      syncWithServer: async () => {
+        try {
+          const res = await fetch("/api/wishlist");
+          if (res.status === 401) {
+            set({ isHydrated: true });
+            return;
+          }
+          if (!res.ok) {
+            const text = await res.text();
+            console.error(`Failed to sync wishlist: ${res.status} ${text}`);
+            set({ isHydrated: true });
+            return;
+          }
+          const data = await res.json();
+          const serverItems = data.map((item: { productId: string }) => item.productId);
+          const localItems = get().items;
+          const mergedItems = Array.from(new Set([...serverItems, ...localItems]));
+          set({ items: mergedItems, isHydrated: true });
+        } catch (error) {
+          console.error("Failed to sync wishlist:", error);
+          set({ isHydrated: true });
+        }
+      },
       addItem: async (productId) => {
+        if (get().items.includes(productId)) {
+          return;
+        }
         const previousItems = get().items;
         set((state) => ({
-          items: state.items.includes(productId)
-            ? state.items
-            : [...state.items, productId],
+          items: [...state.items, productId],
         }));
         try {
           const res = await fetch("/api/wishlist", {
@@ -30,6 +57,9 @@ export const useWishlistStore = create<WishlistState>()(
             body: JSON.stringify({ productId }),
           });
           if (!res.ok) {
+            if (res.status === 409) {
+              return;
+            }
             const text = await res.text();
             throw new Error(`Wishlist add failed: ${res.status} ${text}`);
           }
@@ -39,6 +69,9 @@ export const useWishlistStore = create<WishlistState>()(
         }
       },
       removeItem: async (productId) => {
+        if (!get().items.includes(productId)) {
+          return;
+        }
         const previousItems = get().items;
         set((state) => ({
           items: state.items.filter((id) => id !== productId),
@@ -50,6 +83,9 @@ export const useWishlistStore = create<WishlistState>()(
             body: JSON.stringify({ productId }),
           });
           if (!res.ok) {
+            if (res.status === 404) {
+              return;
+            }
             const text = await res.text();
             throw new Error(`Wishlist remove failed: ${res.status} ${text}`);
           }
@@ -84,6 +120,6 @@ export const useWishlistStore = create<WishlistState>()(
         }
       },
     }),
-    { name: "shop-wishlist" },
+    { name: "shop-wishlist" }
   ),
 );

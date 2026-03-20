@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useLanguage } from '@/store/language';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,13 +21,13 @@ export default function RegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordsDoNotMatch'));
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('auth.passwordTooShort'));
       setLoading(false);
       return;
     }
@@ -40,12 +42,12 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Registration failed');
+        setError(data.error || t('auth.registrationFailed'));
       } else {
         router.push('/login?registered=true');
       }
     } catch {
-      setError('An error occurred. Please try again.');
+      setError(t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -55,8 +57,8 @@ export default function RegisterPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create an account</h1>
-          <p className="text-gray-600 mt-2">Sign up to get started</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('auth.createAccount')}</h1>
+          <p className="text-gray-600 mt-2">{t('auth.signUpPrompt')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white shadow-sm rounded-lg p-8">
@@ -68,7 +70,7 @@ export default function RegisterPage() {
 
           <div className="mb-4">
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              Name
+              {t('auth.name')}
             </label>
             <input
               id="name"
@@ -77,13 +79,13 @@ export default function RegisterPage() {
               onChange={(e) => setName(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Your name"
+              placeholder={t('auth.namePlaceholder')}
             />
           </div>
 
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              {t('auth.email')}
             </label>
             <input
               id="email"
@@ -92,13 +94,13 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="you@example.com"
+              placeholder={t('auth.emailPlaceholder')}
             />
           </div>
 
           <div className="mb-4">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
+              {t('auth.password')}
             </label>
             <input
               id="password"
@@ -107,13 +109,13 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="At least 6 characters"
+              placeholder={t('auth.passwordLength')}
             />
           </div>
 
           <div className="mb-6">
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm Password
+              {t('auth.confirmPassword')}
             </label>
             <input
               id="confirmPassword"
@@ -122,7 +124,7 @@ export default function RegisterPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Confirm your password"
+              placeholder={t('auth.confirmPasswordPlaceholder')}
             />
           </div>
 
@@ -131,13 +133,13 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Creating account...' : 'Create account'}
+            {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
           </button>
 
           <p className="mt-4 text-center text-sm text-gray-600">
-            Already have an account?{' '}
+            {t('auth.alreadyHaveAccount')}{' '}
             <Link href="/login" className="text-indigo-600 hover:underline">
-              Sign in
+              {t('auth.signIn')}
             </Link>
           </p>
         </form>

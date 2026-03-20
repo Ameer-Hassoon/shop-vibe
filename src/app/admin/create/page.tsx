@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/store/language";
 import Link from "next/link";
 
 export default function CreateProductPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useLanguage((state) => state.t);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -50,12 +52,12 @@ export default function CreateProductPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to create product");
+        throw new Error(data.error || t("admin.createFailed"));
       }
 
       router.push("/admin");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create product");
+      setError(err instanceof Error ? err.message : t("admin.createFailed"));
     } finally {
       setLoading(false);
     }
@@ -65,19 +67,19 @@ export default function CreateProductPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Link
         href="/admin"
-        className="text-indigo-600 hover:underline mb-4 inline-block"
+        className="text-indigo-600 dark:text-indigo-400 hover:underline mb-4 inline-block"
       >
-        &larr; Back to Dashboard
+        &larr; {t("admin.backToDashboard")}
       </Link>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Add New Product</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">{t("admin.addNewProduct")}</h1>
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white shadow-sm rounded-lg p-6"
+        className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6"
       >
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm rounded-lg">
             {error}
           </div>
         )}
@@ -85,9 +87,9 @@ export default function CreateProductPage() {
         <div className="mb-4">
           <label
             htmlFor="name"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            Product Name
+            {t("admin.productName")}
           </label>
           <input
             id="name"
@@ -96,16 +98,16 @@ export default function CreateProductPage() {
             required
             value={formData.name}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
         </div>
 
         <div className="mb-4">
           <label
             htmlFor="category"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            Category
+            {t("admin.category")}
           </label>
           <select
             id="category"
@@ -113,14 +115,14 @@ export default function CreateProductPage() {
             required
             value={formData.category}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
-            <option value="">Select a category</option>
-            <option value="Electronics">Electronics</option>
-            <option value="Clothing">Clothing</option>
-            <option value="Home & Garden">Home & Garden</option>
-            <option value="Sports">Sports</option>
-            <option value="Books">Books</option>
+            <option value="">{t("admin.selectCategory")}</option>
+            <option value="Electronics">{t("cat.electronics")}</option>
+            <option value="Clothing">{t("cat.clothing")}</option>
+            <option value="Home & Garden">{t("cat.home")}</option>
+            <option value="Sports">{t("cat.sports")}</option>
+            <option value="Books">{t("cat.books")}</option>
             <option value="Other">Other</option>
           </select>
         </div>
@@ -128,9 +130,9 @@ export default function CreateProductPage() {
         <div className="mb-4">
           <label
             htmlFor="price"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            Price
+            {t("admin.price")}
           </label>
           <input
             id="price"
@@ -141,16 +143,16 @@ export default function CreateProductPage() {
             required
             value={formData.price}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
         </div>
 
         <div className="mb-4">
           <label
             htmlFor="image"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            Image URL
+            {t("admin.imageUrl")}
           </label>
           <input
             id="image"
@@ -159,17 +161,17 @@ export default function CreateProductPage() {
             required
             value={formData.image}
             onChange={handleChange}
-            placeholder="https://example.com/image.jpg"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder={t("admin.imageUrlPlaceholder")}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
         </div>
 
         <div className="mb-4">
           <label
             htmlFor="stock"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            Stock Quantity
+            {t("admin.stockQuantity")}
           </label>
           <input
             id="stock"
@@ -179,16 +181,16 @@ export default function CreateProductPage() {
             required
             value={formData.stock}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
         </div>
 
         <div className="mb-6">
           <label
             htmlFor="description"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            Description
+            {t("admin.description")}
           </label>
           <textarea
             id="description"
@@ -197,7 +199,7 @@ export default function CreateProductPage() {
             rows={4}
             value={formData.description}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
         </div>
 
@@ -206,7 +208,7 @@ export default function CreateProductPage() {
           disabled={loading}
           className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
         >
-          {loading ? "Creating..." : "Create Product"}
+          {loading ? t("admin.creating") : t("admin.createProduct")}
         </button>
       </form>
     </div>

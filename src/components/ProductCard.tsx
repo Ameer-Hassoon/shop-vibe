@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
+import { useLanguage } from "@/store/language";
 
 interface ProductCardProps {
   product: Product;
@@ -14,6 +15,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addToCart);
   const { toggleItem, isInWishlist } = useWishlistStore();
+  const { t, translateCategory } = useLanguage();
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -58,8 +60,8 @@ export function ProductCard({ product }: ProductCardProps) {
               />
             )}
             <div className="absolute top-2 left-2 z-10">
-              <span className="px-2 py-1 bg-white/90 text-xs font-medium text-gray-700 rounded-md">
-                {product.category}
+              <span className="px-2 py-1 bg-white/90 text-xs font-medium text-gray-700 rounded-md product-card-category">
+                {translateCategory(product.category)}
               </span>
             </div>
             {isHovering && (
@@ -104,11 +106,11 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
             {product.stock <= 5 && product.stock > 0 && (
               <p className="text-xs text-orange-500">
-                Only {product.stock} left
+                {t("product.onlyLeft")} {product.stock} {t("product.left")}
               </p>
             )}
             {product.stock === 0 && (
-              <p className="text-xs text-red-500">Out of stock</p>
+              <p className="text-xs text-red-500">{t("product.outOfStock")}</p>
             )}
           </div>
           <button
@@ -119,7 +121,7 @@ export function ProductCard({ product }: ProductCardProps) {
             disabled={product.stock <= 0}
             className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
           >
-            {product.stock > 0 ? "Add" : "Out"}
+            {product.stock > 0 ? t("product.add") : t("product.outOfStock")}
           </button>
         </div>
       </div>

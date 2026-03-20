@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Product } from "@/types";
+import { useLanguage } from "@/store/language";
 import { StarRating } from "./StarRating";
 
 interface QuickViewCardProps {
@@ -23,6 +24,7 @@ export function QuickViewCard({
   reviewCount: initialReviewCount = 0,
   onClose,
 }: QuickViewCardProps) {
+  const { translateCategory } = useLanguage();
   const cardRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [rating, setRating] = useState(initialRating);
@@ -126,7 +128,7 @@ export function QuickViewCard({
         )}
         <div className="absolute top-2 left-2">
           <span className="px-2 py-1 bg-white/90 text-xs font-medium text-gray-700 rounded-md">
-            {product.category}
+            {translateCategory(product.category)}
           </span>
         </div>
       </div>

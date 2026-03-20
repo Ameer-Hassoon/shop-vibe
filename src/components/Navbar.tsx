@@ -6,6 +6,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useCartStore } from "@/store/cart";
+import { useSearchHistory } from "@/store/searchHistory";
+import { useTheme } from "@/store/theme";
+import { useLanguage } from "@/store/language";
 import { Product } from "@/types";
 
 export default function Navbar() {
@@ -13,12 +16,20 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const { searches, addSearch, removeSearch, clearHistory } = useSearchHistory();
+  const { theme, toggleTheme } = useTheme();
+  const { language, setLanguage, t, translateCategory } = useLanguage();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -66,6 +77,7 @@ export default function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (search.trim()) {
+      addSearch(search);
       router.push(`/?search=${encodeURIComponent(search)}`);
       setShowSuggestions(false);
     }
@@ -74,6 +86,12 @@ export default function Navbar() {
   const handleSuggestionClick = (productId: string) => {
     router.push(`/product/${productId}`);
     setSearch("");
+    setShowSuggestions(false);
+  };
+
+  const handleHistoryClick = (query: string) => {
+    setSearch(query);
+    router.push(`/?search=${encodeURIComponent(query)}`);
     setShowSuggestions(false);
   };
 
@@ -94,12 +112,16 @@ export default function Navbar() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search products..."
+                  placeholder={t("nav.search")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  onFocus={() =>
-                    suggestions.length > 0 && setShowSuggestions(true)
-                  }
+                  onFocus={() => {
+                    if (search.trim().length === 0 && searches.length > 0) {
+                      setShowSuggestions(true);
+                    } else if (suggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
                   className="w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <button
@@ -123,52 +145,102 @@ export default function Navbar() {
               </div>
             </form>
 
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-                {suggestions.map((product) => (
+            {mounted && showSuggestions && search.trim().length === 0 && searches.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 search-dropdown">
+                <div className="px-4 py-2">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t("search.recent")}</span>
+                </div>
+                {searches.map((query, index) => (
                   <button
-                    key={product.id}
-                    onClick={() => handleSuggestionClick(product.id)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left"
+                    key={index}
+                    onClick={() => handleHistoryClick(query)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left transition-colors"
                   >
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      width={48}
-                      height={48}
-                      className="object-cover rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "https://via.placeholder.com/48x48?text=N/A";
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">
-                        {product.name}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {product.category}
-                      </p>
-                    </div>
-                    <span className="font-bold text-indigo-600">
-                      ${product.price.toFixed(2)}
-                    </span>
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-700">{query}</span>
                   </button>
                 ))}
+                <div className="px-4 pt-2">
+                  <button
+                    onClick={clearHistory}
+                    className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+                  >
+                    {t("search.clear")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {mounted && showSuggestions && search.trim().length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden search-dropdown">
+                {suggestions.length > 0 && (
+                  <div className="max-h-80 overflow-y-auto">
+                    {suggestions.map((product) => (
+                      <button
+                        key={product.id}
+                        onClick={() => handleSuggestionClick(product.id)}
+                        className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 text-left transition-colors border-b border-gray-50 last:border-b-0"
+                      >
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          width={56}
+                          height={56}
+                          className="object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://via.placeholder.com/56x56?text=N/A";
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                          <p className="text-sm text-gray-500">{translateCategory(product.category)}</p>
+                        </div>
+                        <span className="font-bold text-gray-900">${product.price.toFixed(2)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button
                   onClick={() => {
+                    addSearch(search);
                     router.push(`/?search=${encodeURIComponent(search)}`);
                     setShowSuggestions(false);
                   }}
-                  className="w-full p-3 text-center text-indigo-600 hover:bg-indigo-50 font-medium border-t"
+                  className="w-full px-4 py-3.5 text-center font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                 >
-                  See all results for &quot;{search}&quot;
+                  {t("search.seeAll")} &quot;{search}&quot;
                 </button>
               </div>
             )}
           </div>
 
           <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+
+            <button
+              onClick={() => setLanguage(language === "en" ? "ar" : "en")}
+              className="px-2 py-1 text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors border border-gray-300 rounded"
+              title={language === "en" ? "Switch to Arabic" : "Switch to English"}
+            >
+              {language === "en" ? "العربية" : "English"}
+            </button>
+
             {session && (
               <Link
                 href="/wishlist"
@@ -214,7 +286,7 @@ export default function Navbar() {
             </Link>
 
             {session ? (
-              <div className="relative" ref={userMenuRef}>
+              <div className="relative user-menu" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -245,7 +317,7 @@ export default function Navbar() {
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 user-menu-dropdown">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">
                         {session.user?.name || "User"}

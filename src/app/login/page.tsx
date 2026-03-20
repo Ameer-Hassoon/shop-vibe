@@ -4,9 +4,11 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLanguage } from "@/store/language";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,9 +28,9 @@ export default function LoginPage() {
 
       if (result?.error) {
         if (result.error === "CredentialsSignin") {
-          setError("Invalid email or password");
+          setError(t("auth.invalidCredentials"));
         } else {
-          setError("An error occurred. Please try again.");
+          setError(t("common.error"));
         }
       } else {
         router.push("/");
@@ -36,7 +38,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError("An error occurred. Please try again.");
+      setError(t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -46,8 +48,8 @@ export default function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t("auth.welcome")}</h1>
+          <p className="text-gray-600 mt-2">{t("auth.signInPrompt")}</p>
         </div>
 
         <form
@@ -65,7 +67,7 @@ export default function LoginPage() {
               htmlFor="email"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Email
+              {t("auth.email")}
             </label>
             <input
               id="email"
@@ -74,7 +76,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="you@example.com"
+              placeholder={t("auth.emailPlaceholder")}
             />
           </div>
 
@@ -83,7 +85,7 @@ export default function LoginPage() {
               htmlFor="password"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Password
+              {t("auth.password")}
             </label>
             <input
               id="password"
@@ -92,7 +94,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Your password"
+              placeholder={t("auth.passwordPlaceholder")}
             />
           </div>
 
@@ -101,13 +103,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? t("auth.signingIn") : t("auth.signIn")}
           </button>
 
           <p className="mt-4 text-center text-sm text-gray-600">
-            Don&apos;t have an account?{" "}
+            {t("auth.noAccount")}{" "}
             <Link href="/register" className="text-indigo-600 hover:underline">
-              Sign up
+              {t("auth.signUp")}
             </Link>
           </p>
         </form>

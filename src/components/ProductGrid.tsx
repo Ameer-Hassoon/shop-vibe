@@ -75,11 +75,7 @@ export function ProductGrid({ products }: ProductGridProps) {
             }}
             onMouseLeave={handleProductLeave}
           >
-            <ProductCard
-              product={product}
-              rating={product.averageRating || 0}
-              reviewCount={product.reviewCount || 0}
-            />
+            <ProductCard product={product} />
           </div>
         ))}
       </div>

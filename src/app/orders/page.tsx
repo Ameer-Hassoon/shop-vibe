@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/store/language';
 import Link from 'next/link';
 
 interface OrderItem {
@@ -36,6 +37,7 @@ interface Order {
 export default function OrdersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useLanguage((state) => state.t);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,16 +99,9 @@ export default function OrdersPage() {
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'PENDING': return 'Pending';
-      case 'PROCESSING': return 'Processing';
-      case 'CONFIRMED': return 'Confirmed';
-      case 'SHIPPED': return 'Shipped';
-      case 'DELIVERED': return 'Delivered';
-      case 'CANCELLED': return 'Cancelled';
-      case 'REFUNDED': return 'Refunded';
-      default: return status;
-    }
+    const key = `status.${status}` as const;
+    const label = t(key);
+    return label !== key ? label : status;
   };
 
   if (status === 'loading' || loading) {
@@ -120,7 +115,7 @@ export default function OrdersPage() {
   if (!session) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <p className="text-gray-500">Please log in to view your orders.</p>
+        <p className="text-gray-500 dark:text-gray-400">{t("orders.loginRequired")}</p>
       </div>
     );
   }
@@ -128,51 +123,51 @@ export default function OrdersPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("orders.title")}</h1>
         <Link
           href="/"
-          className="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+          className="px-4 py-2 text-indigo-600 dark:text-indigo-400 border border-indigo-600 dark:border-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
         >
-          Continue Shopping
+          {t("orders.continueShopping")}
         </Link>
       </div>
 
       {orders.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+          <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">No orders yet</h2>
-          <p className="text-gray-500 mb-6">Start shopping to see your order history here</p>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t("orders.noOrders")}</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">{t("orders.startShopping")}</p>
           <Link
             href="/"
             className="inline-block px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
           >
-            Start Shopping
+            {t("orders.startShopping")}
           </Link>
         </div>
       ) : (
         <div className="space-y-6">
           {orders.map((order) => (
-            <div key={order.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <div key={order.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex flex-wrap items-center gap-4">
                     <div>
-                      <p className="text-sm text-gray-500">Order ID</p>
-                      <p className="font-mono text-sm font-medium">#{order.id.slice(0, 8)}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t("orders.orderId")}</p>
+                      <p className="font-mono text-sm font-medium dark:text-gray-200">#{order.id.slice(0, 8)}</p>
                     </div>
-                    <div className="h-8 w-px bg-gray-300 hidden sm:block"></div>
+                    <div className="h-8 w-px bg-gray-300 dark:bg-gray-600 hidden sm:block"></div>
                     <div>
-                      <p className="text-sm text-gray-500">Date</p>
-                      <p className="font-medium">{formatDate(order.createdAt)}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t("orders.date")}</p>
+                      <p className="font-medium dark:text-gray-200">{formatDate(order.createdAt)}</p>
                     </div>
-                    <div className="h-8 w-px bg-gray-300 hidden sm:block"></div>
+                    <div className="h-8 w-px bg-gray-300 dark:bg-gray-600 hidden sm:block"></div>
                     <div>
-                      <p className="text-sm text-gray-500">Total</p>
-                      <p className="font-bold text-indigo-600">${order.total.toFixed(2)}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t("orders.total")}</p>
+                      <p className="font-bold text-indigo-600 dark:text-indigo-400">${order.total.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -180,8 +175,8 @@ export default function OrdersPage() {
                       {getStatusLabel(order.status)}
                     </span>
                     {order.trackingNumber && (
-                      <span className="text-sm text-gray-500">
-                        Tracking: {order.trackingNumber}
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {t("orders.tracking")}: {order.trackingNumber}
                       </span>
                     )}
                   </div>
@@ -192,7 +187,7 @@ export default function OrdersPage() {
                 <div className="space-y-4">
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center gap-4">
-                      <Link href={`/product/${item.product.id}`} className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
+                      <Link href={`/product/${item.product.id}`} className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
                         <Image
                           src={item.product.image}
                           alt={item.product.name}
@@ -205,34 +200,34 @@ export default function OrdersPage() {
                         />
                       </Link>
                       <div className="flex-1 min-w-0">
-                        <Link href={`/product/${item.product.id}`} className="font-medium text-gray-900 hover:text-indigo-600 transition-colors">
+                        <Link href={`/product/${item.product.id}`} className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                           {item.product.name}
                         </Link>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Qty: {item.quantity} × ${item.price.toFixed(2)}
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {t("checkout.qty")}: {item.quantity} × ${item.price.toFixed(2)}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="font-bold dark:text-white">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Shipping Address</h3>
-                      <p className="text-gray-600">
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("orders.shippingAddress")}</h3>
+                      <p className="text-gray-600 dark:text-gray-400">
                         {order.shippingAddress}<br />
                         {order.city}, {order.state} {order.zipCode}
                       </p>
                     </div>
                     <Link
                       href={`/orders/${order.id}`}
-                      className="px-4 py-2 text-sm text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                      className="px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 border border-indigo-600 dark:border-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                     >
-                      View Details
+                      {t("orders.viewDetails")}
                     </Link>
                   </div>
                 </div>

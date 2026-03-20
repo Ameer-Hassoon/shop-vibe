@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/store/language";
 import { Product } from "@/types";
 import Link from "next/link";
 
@@ -12,6 +13,7 @@ const ITEMS_PER_PAGE = 50;
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useLanguage((state) => state.t);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,7 +80,7 @@ export default function AdminDashboard() {
   }, [status, session, currentPage, debouncedSearch, fetchProducts]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+    if (!confirm(t("admin.deleteConfirm"))) return;
     setDeletingId(id);
     try {
       const previousProducts = products;
@@ -88,7 +90,7 @@ export default function AdminDashboard() {
 
       if (!res.ok) {
         window.alert(
-          `Failed to delete product (status: ${res.status} ${res.statusText})`,
+          `${t("admin.deleteFailed")} (status: ${res.status} ${res.statusText})`,
         );
         setProducts(previousProducts);
       } else {
@@ -97,7 +99,7 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       window.alert(
-        `Failed to delete product: ${error instanceof Error ? error.message : error}`,
+        `${t("admin.deleteFailed")}: ${error instanceof Error ? error.message : error}`,
       );
     } finally {
       setDeletingId(null);
@@ -136,17 +138,17 @@ export default function AdminDashboard() {
         <button
           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           disabled={currentPage === 1 || loading}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
         >
-          Prev
+          {t("admin.prev")}
         </button>
         {pages}
         <button
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           disabled={currentPage === totalPages || loading}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
         >
-          Next
+          {t("admin.next")}
         </button>
       </div>
     );
@@ -164,9 +166,9 @@ export default function AdminDashboard() {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-          <p className="text-gray-600 mt-2">
-            You must be an admin to view this page.
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t("admin.accessDenied")}</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            {t("admin.mustBeAdmin")}
           </p>
         </div>
       </div>
@@ -177,8 +179,8 @@ export default function AdminDashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500 mt-1">{totalProducts} products total</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("admin.title")}</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">{totalProducts} {t("admin.productsTotal")}</p>
         </div>
         <Link
           href="/admin/create"
@@ -197,7 +199,7 @@ export default function AdminDashboard() {
               d="M12 4v16m8-8H4"
             />
           </svg>
-          Add Product
+          {t("admin.addProduct")}
         </Link>
       </div>
 
@@ -220,15 +222,15 @@ export default function AdminDashboard() {
           </div>
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder={t("admin.searchProducts")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-500"
             >
               <svg
                 className="w-5 h-5"
@@ -247,9 +249,9 @@ export default function AdminDashboard() {
           )}
         </div>
         {(searchQuery || debouncedSearch) && (
-          <p className="mt-2 text-sm text-gray-500">
-            Showing {products.length} of {totalProducts} products
-            {loading && <span className="ml-2">Loading...</span>}
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            {t("admin.showingOf")} {products.length} {t("admin.ofOf")} {totalProducts} {t("admin.ofProducts")}
+            {loading && <span className="ml-2">{t("admin.loading")}</span>}
           </p>
         )}
       </div>
@@ -272,7 +274,7 @@ export default function AdminDashboard() {
         ) : products.length === 0 ? (
           <div className="text-center py-12">
             <svg
-              className="w-12 h-12 text-gray-300 mx-auto mb-4"
+              className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -284,52 +286,52 @@ export default function AdminDashboard() {
                 d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-lg">
               {searchQuery
-                ? `No products match "${searchQuery}"`
-                : "No products yet"}
+                ? `${t("admin.noProductsMatch")} "${searchQuery}"`
+                : t("admin.noProducts")}
             </p>
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="text-indigo-600 hover:underline mt-2"
+                className="text-indigo-600 dark:text-indigo-400 hover:underline mt-2"
               >
-                Clear search
+                {t("admin.clearSearch")}
               </button>
             )}
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Product
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      {t("admin.product")}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      {t("admin.category")}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Price
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      {t("admin.price")}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Stock
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      {t("admin.stock")}
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      {t("admin.actions")}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {products.map((product) => (
                     <tr
                       key={product.id}
-                      className={`hover:bg-gray-50 transition-colors ${deletingId === product.id ? "opacity-50" : ""}`}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${deletingId === product.id ? "opacity-50" : ""}`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex-shrink-0">
                             <Image
                               src={product.image}
                               alt={product.name}
@@ -343,21 +345,21 @@ export default function AdminDashboard() {
                             />
                           </div>
                           <div className="ml-4 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">
                               {product.name}
                             </div>
-                            <div className="text-xs text-gray-500 truncate max-w-xs">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
                               {product.description.substring(0, 50)}...
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded">
+                        <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
                           {product.category}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {typeof product.price === "number" &&
                         !isNaN(product.price)
                           ? `$${product.price.toFixed(2)}`
@@ -365,17 +367,17 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded ${product.stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                          className={`px-2 py-1 text-xs font-medium rounded ${product.stock > 0 ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400" : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400"}`}
                         >
                           {product.stock > 0
-                            ? `${product.stock} in stock`
-                            : "Out of stock"}
+                            ? `${product.stock} ${t("admin.inStock")}`
+                            : t("admin.outOfStock")}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <Link
                           href={`/admin/edit/${product.id}`}
-                          className="text-indigo-600 hover:text-indigo-900 mr-4 inline-flex items-center gap-1"
+                          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-4 inline-flex items-center gap-1"
                         >
                           <svg
                             className="w-4 h-4"
@@ -390,12 +392,12 @@ export default function AdminDashboard() {
                               d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                             />
                           </svg>
-                          Edit
+                          {t("admin.edit")}
                         </Link>
                         <button
                           onClick={() => handleDelete(product.id)}
                           disabled={deletingId === product.id}
-                          className="text-red-600 hover:text-red-900 inline-flex items-center gap-1 disabled:opacity-50"
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 inline-flex items-center gap-1 disabled:opacity-50"
                         >
                           <svg
                             className="w-4 h-4"
@@ -410,7 +412,7 @@ export default function AdminDashboard() {
                               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                             />
                           </svg>
-                          {deletingId === product.id ? "Deleting..." : "Delete"}
+                          {deletingId === product.id ? t("admin.deleting") : t("admin.delete")}
                         </button>
                       </td>
                     </tr>

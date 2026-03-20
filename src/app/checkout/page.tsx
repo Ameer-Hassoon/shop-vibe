@@ -3,11 +3,13 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useCartStore } from "@/store/cart";
+import { useLanguage } from "@/store/language";
 import Link from "next/link";
 
 export default function CheckoutPage() {
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
+  const t = useLanguage((state) => state.t);
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cod">("card");
@@ -66,11 +68,11 @@ export default function CheckoutPage() {
         clearCart();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to place order");
+        alert(data.error || t("checkout.placeOrderFailed"));
       }
     } catch (error) {
       console.error("Order failed:", error);
-      alert("Failed to place order. Please try again.");
+      alert(t("checkout.placeOrderFailedRetry"));
     } finally {
       setLoading(false);
     }
@@ -79,13 +81,13 @@ export default function CheckoutPage() {
   if (items.length === 0 && !orderPlaced) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Your cart is empty</h1>
-        <p className="text-gray-500 mt-2">Add some items to checkout</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("checkout.emptyCart")}</h1>
+        <p className="text-gray-500 mt-2">{t("checkout.addItems")}</p>
         <Link
           href="/"
           className="text-indigo-600 hover:underline mt-4 inline-block"
         >
-          Continue shopping
+          {t("checkout.continueShopping")}
         </Link>
       </div>
     );
@@ -111,20 +113,19 @@ export default function CheckoutPage() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Order Placed!
+            {t("checkout.orderPlaced")}
           </h1>
           <p className="text-gray-500 mb-6">
-            Thank you for your purchase. Your order has been confirmed.
+            {t("checkout.thankYou")}
           </p>
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <p className="text-sm text-gray-500">Order confirmation sent to</p>
-            <p className="font-medium">{formData.email || "your email"}</p>
+            <p className="text-sm text-gray-500">{t("checkout.confirmationSent")}</p>
+            <p className="font-medium">{formData.email || t("checkout.yourEmail")}</p>
           </div>
           {paymentMethod === "cod" && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
               <p className="text-sm text-amber-800">
-                <span className="font-medium">Cash on Delivery:</span> Please
-                have ${total.toFixed(2)} ready when your order arrives.
+                <span className="font-medium">{t("checkout.cashOnDelivery")}:</span> {t("checkout.codMessage")} ${total.toFixed(2)} {t("checkout.readyWhenArrives")}
               </p>
             </div>
           )}
@@ -132,7 +133,7 @@ export default function CheckoutPage() {
             href="/"
             className="inline-block px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
           >
-            Continue Shopping
+            {t("checkout.continueShopping")}
           </Link>
         </div>
       </div>
@@ -141,7 +142,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">{t("checkout.title")}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -151,12 +152,12 @@ export default function CheckoutPage() {
                 <span className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm">
                   1
                 </span>
-                Shipping Information
+                {t("checkout.shippingInfo")}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name
+                    {t("checkout.firstName")}
                   </label>
                   <input
                     type="text"
@@ -169,7 +170,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name
+                    {t("checkout.lastName")}
                   </label>
                   <input
                     type="text"
@@ -182,7 +183,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
+                    {t("checkout.email")}
                   </label>
                   <input
                     type="email"
@@ -195,7 +196,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address
+                    {t("checkout.address")}
                   </label>
                   <input
                     type="text"
@@ -208,7 +209,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City
+                    {t("checkout.city")}
                   </label>
                   <input
                     type="text"
@@ -221,7 +222,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State
+                    {t("checkout.state")}
                   </label>
                   <input
                     type="text"
@@ -234,7 +235,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ZIP Code
+                    {t("checkout.zipCode")}
                   </label>
                   <input
                     type="text"
@@ -253,7 +254,7 @@ export default function CheckoutPage() {
                 <span className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm">
                   2
                 </span>
-                Payment Method
+                {t("checkout.paymentMethod")}
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -292,10 +293,10 @@ export default function CheckoutPage() {
                       <p
                         className={`font-semibold ${paymentMethod === "card" ? "text-indigo-700" : "text-gray-700"}`}
                       >
-                        Credit/Debit Card
+                        {t("checkout.creditCard")}
                       </p>
                       <p className="text-sm text-gray-500">
-                        Pay securely online
+                        {t("checkout.payOnline")}
                       </p>
                     </div>
                   </div>
@@ -336,10 +337,10 @@ export default function CheckoutPage() {
                       <p
                         className={`font-semibold ${paymentMethod === "cod" ? "text-indigo-700" : "text-gray-700"}`}
                       >
-                        Cash on Delivery
+                        {t("checkout.cashOnDelivery")}
                       </p>
                       <p className="text-sm text-gray-500">
-                        Pay when you receive
+                        {t("checkout.payWhenReceive")}
                       </p>
                     </div>
                   </div>
@@ -350,12 +351,12 @@ export default function CheckoutPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Card Number
+                      {t("checkout.cardNumber")}
                     </label>
                     <input
                       type="text"
                       name="cardNumber"
-                      placeholder="1234 5678 9012 3456"
+                      placeholder={t("checkout.cardNumberPlaceholder")}
                       value={formData.cardNumber}
                       onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -364,12 +365,12 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Expiry Date
+                        {t("checkout.expiryDate")}
                       </label>
                       <input
                         type="text"
                         name="expiryDate"
-                        placeholder="MM/YY"
+                        placeholder={t("checkout.expiryDatePlaceholder")}
                         value={formData.expiryDate}
                         onChange={handleInputChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -377,12 +378,12 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        CVV
+                        {t("checkout.cvv")}
                       </label>
                       <input
                         type="text"
                         name="cvv"
-                        placeholder="123"
+                        placeholder={t("checkout.cvvPlaceholder")}
                         value={formData.cvv}
                         onChange={handleInputChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -404,7 +405,7 @@ export default function CheckoutPage() {
                       />
                     </svg>
                     <span>
-                      Your payment information is secure and encrypted
+                      {t("checkout.paymentSecure")}
                     </span>
                   </div>
                 </div>
@@ -428,11 +429,10 @@ export default function CheckoutPage() {
                     </svg>
                     <div>
                       <p className="font-medium text-amber-800">
-                        Cash on Delivery
+                        {t("checkout.cashOnDelivery")}
                       </p>
                       <p className="text-sm text-amber-700 mt-1">
-                        Pay with cash when your order is delivered to your
-                        doorstep. A small COD fee of $3.00 may apply.
+                        {t("checkout.codInfo")}
                       </p>
                     </div>
                   </div>
@@ -466,7 +466,7 @@ export default function CheckoutPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Processing Order...
+                  {t("checkout.processingOrder")}
                 </>
               ) : (
                 <>
@@ -484,8 +484,8 @@ export default function CheckoutPage() {
                     />
                   </svg>
                   {paymentMethod === "cod"
-                    ? "Place Order (Pay on Delivery)"
-                    : "Place Order"}{" "}
+                    ? t("checkout.placeOrderCod")
+                    : t("checkout.placeOrder")}{" "}
                   - ${total.toFixed(2)}
                 </>
               )}
@@ -496,7 +496,7 @@ export default function CheckoutPage() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Order Summary
+              {t("checkout.orderSummary")}
             </h2>
 
             <div className="max-h-64 overflow-y-auto space-y-3 mb-4">
@@ -516,7 +516,7 @@ export default function CheckoutPage() {
                       {item.product.name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Qty: {item.quantity}
+                      {t("checkout.qty")}: {item.quantity}
                     </p>
                     <p className="text-sm font-semibold">
                       ${(item.product.price * item.quantity).toFixed(2)}
@@ -528,38 +528,40 @@ export default function CheckoutPage() {
 
             <div className="border-t border-gray-200 pt-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-500">{t("checkout.subtotal")}</span>
                 <span className="font-medium">${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Shipping</span>
+                <span className="text-gray-500">{t("checkout.shipping")}</span>
                 <span className="font-medium">
-                  {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+                  {shipping === 0 ? t("checkout.free") : `$${shipping.toFixed(2)}`}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Tax (8%)</span>
+                <span className="text-gray-500">{t("checkout.tax")}</span>
                 <span className="font-medium">${tax.toFixed(2)}</span>
               </div>
               {codFee > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">COD Fee</span>
+                  <span className="text-gray-500">{t("checkout.codFee")}</span>
                   <span className="font-medium">${codFee.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
-                <span>Total</span>
-                <span className="text-indigo-600">${total.toFixed(2)}</span>
+              <div className="mt-3 pt-3 border-t-2 border-gray-300">
+                <div className="flex justify-between items-center bg-indigo-50 -mx-3 px-3 py-3 rounded-lg">
+                  <span className="text-lg font-bold text-gray-900">{t("checkout.total")}</span>
+                  <span className="text-2xl font-bold text-indigo-600">${total.toFixed(2)}</span>
+                </div>
               </div>
             </div>
 
             <div className="mt-4 bg-gray-50 rounded-lg p-3">
               <p className="text-sm text-gray-600">
-                <span className="font-medium">Payment:</span>{" "}
+                <span className="font-medium">{t("checkout.payment")}:</span>{" "}
                 {paymentMethod === "cod" ? (
-                  <span className="text-amber-600">Cash on Delivery</span>
+                  <span className="text-amber-600">{t("checkout.cashOnDelivery")}</span>
                 ) : (
-                  <span className="text-blue-600">Credit/Debit Card</span>
+                  <span className="text-blue-600">{t("checkout.creditCard")}</span>
                 )}
               </p>
             </div>
@@ -579,7 +581,7 @@ export default function CheckoutPage() {
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                <span>Free shipping on orders over $100!</span>
+                <span>{t("checkout.freeShipping")}</span>
               </div>
             )}
           </div>
