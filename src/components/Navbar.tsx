@@ -220,7 +220,7 @@ export default function Navbar() {
             <button
               onClick={toggleTheme}
               className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? t("navbar.switchToLight") : t("navbar.switchToDark")}
             >
               {theme === "dark" ? (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,7 +236,7 @@ export default function Navbar() {
             <button
               onClick={() => setLanguage(language === "en" ? "ar" : "en")}
               className="px-2 py-1 text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors border border-gray-300 rounded"
-              title={language === "en" ? "Switch to Arabic" : "Switch to English"}
+              title={language === "en" ? t("navbar.switchToArabic") : t("navbar.switchToEnglish")}
             >
               {language === "en" ? "العربية" : "English"}
             </button>

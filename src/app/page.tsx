@@ -81,7 +81,8 @@ function HomePageContent() {
     setLoading(true);
     setError(null);
     const categoryNames = categories.map(cat => CATEGORY_KEY_TO_NAME[cat] || cat);
-    const categoryParam = categoryNames.length > 0 ? categoryNames.join(",") : "";
+    const encodedCategoryNames = categoryNames.map(cat => encodeURIComponent(cat));
+    const categoryParam = encodedCategoryNames.length > 0 ? encodedCategoryNames.join(",") : "";
     const inStockParam = inStockOnly ? "&inStock=true" : "";
     const url = `/api/products?search=${encodeURIComponent(searchQuery)}${categoryParam ? `&category=${categoryParam}` : ""}${inStockParam}&sortBy=${sortBy}&page=1&limit=1000`;
     fetch(url, { cache: "no-store" })

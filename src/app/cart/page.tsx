@@ -88,10 +88,14 @@ export default function CartPage() {
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() =>
-                        updateQuantity(item.productId, item.quantity - 1)
-                      }
-                      className="w-8 h-8 border border-gray-300 rounded hover:bg-gray-100 transition-colors flex items-center justify-center text-gray-900"
+                      onClick={() => {
+                        if (item.quantity > 1) {
+                          updateQuantity(item.productId, item.quantity - 1);
+                        }
+                      }}
+                      disabled={item.quantity <= 1}
+                      className="w-8 h-8 border border-gray-300 rounded hover:bg-gray-100 transition-colors flex items-center justify-center text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Decrease quantity"
                     >
                       -
                     </button>
@@ -114,6 +118,7 @@ export default function CartPage() {
                     </span>
                     <button
                       onClick={() => removeFromCart(item.productId)}
+                      aria-label={`Remove ${item.product.name} from cart`}
                       className="text-red-600 hover:text-red-800 transition-colors"
                     >
                       <svg

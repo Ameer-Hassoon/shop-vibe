@@ -106,7 +106,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
             {product.stock <= 5 && product.stock > 0 && (
               <p className="text-xs text-orange-500">
-                {t("product.onlyLeft")} {product.stock} {t("product.left")}
+                {t("product.lowStock", { count: product.stock })}
               </p>
             )}
             {product.stock === 0 && (

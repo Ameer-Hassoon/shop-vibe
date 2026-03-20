@@ -10,7 +10,7 @@ interface LanguageState {
   _hasHydrated: boolean;
   setLanguage: (lang: Language) => void;
   setHasHydrated: (state: boolean) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   translateCategory: (category: string) => string;
 }
 
@@ -24,6 +24,10 @@ const translations: Record<string, Record<Language, string>> = {
   "nav.orders": { en: "Order History", ar: "سجل الطلبات" },
   "nav.signout": { en: "Sign Out", ar: "تسجيل الخروج" },
   "nav.admin": { en: "Admin", ar: "مدير" },
+  "nav.switchToLight": { en: "Switch to light mode", ar: "التبديل إلى الوضع الفاتح" },
+  "nav.switchToDark": { en: "Switch to dark mode", ar: "التبديل إلى الوضع الداكن" },
+  "nav.switchToArabic": { en: "Switch to Arabic", ar: "التبديل إلى العربية" },
+  "nav.switchToEnglish": { en: "Switch to English", ar: "التبديل إلى الإنجليزية" },
 
   // Search
   "search.recent": { en: "Recent", ar: "الأخيرة" },
@@ -64,12 +68,12 @@ const translations: Record<string, Record<Language, string>> = {
   "cat.automotive": { en: "Automotive", ar: "السيارات" },
   "cat.pets": { en: "Pet Supplies", ar: "مستلزمات الحيوانات الأليفة" },
   "cat.office": { en: "Office Supplies", ar: "لوازم المكتب" },
+  "cat.other": { en: "Other", ar: "أخرى" },
 
   // Products
   "product.addToCart": { en: "Add to Cart", ar: "أضف إلى السلة" },
   "product.outOfStock": { en: "Out of Stock", ar: "غير متوفر" },
-  "product.onlyLeft": { en: "Only", ar: "فقط" },
-  "product.left": { en: "left", ar: "متبقي" },
+  "product.lowStock": { en: "Only {{count}} left", ar: "متبقي {{count}}" },
   "product.add": { en: "Add", ar: "أضف" },
 
   // Sort
@@ -199,7 +203,8 @@ const translations: Record<string, Record<Language, string>> = {
   "orders.title": { en: "My Orders", ar: "طلباتي" },
   "orders.continueShopping": { en: "Continue Shopping", ar: "متابعة التسوق" },
   "orders.noOrders": { en: "No orders yet", ar: "لا توجد طلبات بعد" },
-  "orders.startShopping": { en: "Start shopping to see your order history here", ar: "ابدأ التسوق لرؤية سجل طلباتك هنا" },
+  "orders.startShopping": { en: "Start Shopping", ar: "ابدأ التسوق" },
+  "orders.startShoppingDescription": { en: "Start shopping to see your order history here", ar: "ابدأ التسوق لرؤية سجل طلباتك هنا" },
   "orders.orderId": { en: "Order ID", ar: "رقم الطلب" },
   "orders.date": { en: "Date", ar: "التاريخ" },
   "orders.total": { en: "Total", ar: "الإجمالي" },
@@ -248,7 +253,15 @@ const translations: Record<string, Record<Language, string>> = {
   "profile.noOrders": { en: "No orders yet", ar: "لا توجد طلبات بعد" },
   "profile.startShopping": { en: "Start shopping", ar: "ابدأ التسوق" },
   "profile.viewAllOrders": { en: "View all", ar: "عرض الكل" },
+  "profile.viewAllOrdersCount": { en: "View all {{count}} orders", ar: "عرض الكل {{count}} طلبات" },
   "profile.orders": { en: "orders", ar: "طلبات" },
+  "profile.orderStatus.pending": { en: "Pending", ar: "قيد الانتظار" },
+  "profile.orderStatus.processing": { en: "Processing", ar: "قيد المعالجة" },
+  "profile.orderStatus.confirmed": { en: "Confirmed", ar: "تم التأكيد" },
+  "profile.orderStatus.shipped": { en: "Shipped", ar: "تم الشحن" },
+  "profile.orderStatus.delivered": { en: "Delivered", ar: "تم التوصيل" },
+  "profile.orderStatus.cancelled": { en: "Cancelled", ar: "ملغي" },
+  "profile.orderStatus.refunded": { en: "Refunded", ar: "تم استرداد المبلغ" },
 
   // Admin
   "admin.title": { en: "Admin Dashboard", ar: "لوحة التحكم" },
@@ -313,15 +326,21 @@ export const useLanguage = create<LanguageState>()(
       setHasHydrated: (state) => {
         set({ _hasHydrated: state });
       },
-      t: (key) => {
+      t: (key: string, params?: Record<string, string | number>) => {
         const { language, _hasHydrated } = get();
-        if (!_hasHydrated) {
-          return translations[key]?.["en"] || key;
+        let text = _hasHydrated 
+          ? translations[key]?.[language] || translations[key]?.["en"] || key
+          : translations[key]?.["en"] || key;
+        if (params) {
+          Object.entries(params).forEach(([k, v]) => {
+            text = text.replace(new RegExp(`{{${k}}}`, 'g'), String(v));
+          });
         }
-        return translations[key]?.[language] || key;
+        return text;
       },
       translateCategory: (category: string) => {
-        const { language } = get();
+        const { language, _hasHydrated } = get();
+        const lang = _hasHydrated ? language : "en";
         const catNameToKey: Record<string, string> = {
           "electronics": "cat.electronics",
           "computers & laptops": "cat.computers",
@@ -384,7 +403,7 @@ export const useLanguage = create<LanguageState>()(
         } else {
           key = `cat.${category.toLowerCase().replace(/[\s&]/g, '_').replace(/__/g, '_')}`;
         }
-        const translation = translations[key]?.[language];
+        const translation = translations[key]?.[lang];
         if (translation) return translation;
         const fallbackName = catKeyToName[key];
         return fallbackName || category;
@@ -396,6 +415,10 @@ export const useLanguage = create<LanguageState>()(
       skipHydration: true,
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+        if (typeof document !== "undefined" && state?.language) {
+          document.documentElement.dir = state.language === "ar" ? "rtl" : "ltr";
+          document.documentElement.lang = state.language;
+        }
       },
     }
   )

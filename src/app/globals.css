@@ -65,7 +65,7 @@ html {
 }
 
 .dark .text-gray-400 {
-  color: #475569 !important;
+  color: #94a3b8 !important;
 }
 
 .dark .border-gray-200 {
@@ -320,7 +320,7 @@ html {
 }
 
 [dir="rtl"] .rotate-180 {
-  transform: rotate(180deg);
+  transform: rotate(0deg);
 }
 
 [dir="rtl"] .flex-row {
@@ -408,9 +408,9 @@ html {
 }
 
 [dir="rtl"] .origin-right {
-  transform-origin: right;
+  transform-origin: left;
 }
 
 [dir="rtl"] .origin-left {
-  transform-origin: left;
+  transform-origin: right;
 }

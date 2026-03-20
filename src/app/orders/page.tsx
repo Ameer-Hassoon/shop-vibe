@@ -140,7 +140,7 @@ export default function OrdersPage() {
             </svg>
           </div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t("orders.noOrders")}</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">{t("orders.startShopping")}</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">{t("orders.startShoppingDescription")}</p>
           <Link
             href="/"
             className="inline-block px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"

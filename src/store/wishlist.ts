@@ -33,7 +33,8 @@ export const useWishlistStore = create<WishlistState>()(
             return;
           }
           const data = await res.json();
-          const serverItems = data.map((item: { productId: string }) => item.productId);
+          const itemsArray = Array.isArray(data) ? data : data.items && Array.isArray(data.items) ? data.items : [];
+          const serverItems = itemsArray.map((item: { productId: string }) => item.productId);
           const localItems = get().items;
           const mergedItems = Array.from(new Set([...serverItems, ...localItems]));
           set({ items: mergedItems, isHydrated: true });
@@ -112,14 +113,18 @@ export const useWishlistStore = create<WishlistState>()(
             return;
           }
           const data = await res.json();
+          const itemsArray = Array.isArray(data) ? data : data.items && Array.isArray(data.items) ? data.items : [];
           set({
-            items: data.map((item: { productId: string }) => item.productId),
+            items: itemsArray.map((item: { productId: string }) => item.productId),
           });
         } catch (error) {
           console.error("Failed to fetch wishlist:", error);
         }
       },
     }),
-    { name: "shop-wishlist" }
+    {
+      name: "shop-wishlist",
+      partialize: (state) => ({ items: state.items }),
+    }
   ),
 );

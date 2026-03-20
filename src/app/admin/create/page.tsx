@@ -123,7 +123,7 @@ export default function CreateProductPage() {
             <option value="Home & Garden">{t("cat.home")}</option>
             <option value="Sports">{t("cat.sports")}</option>
             <option value="Books">{t("cat.books")}</option>
-            <option value="Other">Other</option>
+            <option value="Other">{t("cat.other")}</option>
           </select>
         </div>
 

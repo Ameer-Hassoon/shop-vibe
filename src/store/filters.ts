@@ -118,10 +118,11 @@ export const useFilters = create<FilterState>()(
     { 
       name: "shop-filters",
       onRehydrateStorage: () => (state) => {
-        if (state && state.categories.length > 0) {
+        if (state && Array.isArray(state.categories) && state.categories.length > 0) {
           const migrated = migrateCategories(state.categories);
           if (migrated.length > 0) {
             state.categories = migrated;
+            state.currentPage = 1;
           }
         }
       },

@@ -111,7 +111,7 @@ export default function ProfilePage() {
               </span>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{user?.name || 'User'}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{user?.name || t("profile.notSet")}</h2>
               <p className="text-gray-500 dark:text-gray-400">{user?.email}</p>
               {user?.role === 'ADMIN' && (
                 <span className="inline-block mt-2 px-3 py-1 text-sm bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full font-medium">
@@ -187,7 +187,7 @@ export default function ProfilePage() {
                         <div className="text-right">
                           <p className="font-bold text-lg text-indigo-600 dark:text-indigo-400">${order.total.toFixed(2)}</p>
                           <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusColor(order.status)}`}>
-                            {order.status}
+                            {t(`profile.orderStatus.${order.status.toLowerCase()}`)}
                           </span>
                         </div>
                       </div>
@@ -219,7 +219,7 @@ export default function ProfilePage() {
                       href="/orders"
                       className="block text-center py-3 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
                     >
-                      {t("profile.viewAllOrders")} {orders.length} {t("profile.orders")}
+                      {t("profile.viewAllOrdersCount", { count: orders.length })}
                     </Link>
                   )}
                 </div>

@@ -13,19 +13,37 @@ export type RateLimitRecord = { count: number; timestamp: number };
 export function getClientIpFromRequest(request: Request): string {
   const trustProxy = process.env.TRUST_PROXY === "true";
 
-  const getFirst = (value: string | null) => {
+  const getFirst = (value: string | null | undefined) => {
     if (!value) return undefined;
     return value.split(",")[0].trim();
   };
 
-  if (trustProxy) {
-    const forwarded = getFirst(request.headers.get("x-forwarded-for"));
-    const realIp = getFirst(request.headers.get("x-real-ip"));
+    if (trustProxy) {
+    let forwarded: string | undefined;
+    let realIp: string | undefined;
+
+    if (typeof request.headers.get === "function") {
+      forwarded = getFirst(request.headers.get("x-forwarded-for"));
+      realIp = getFirst(request.headers.get("x-real-ip"));
+    } else if (request.headers && typeof request.headers === "object") {
+      const headers = request.headers as unknown as Record<string, string | string[] | undefined>;
+      const forwardedValue = headers["x-forwarded-for"];
+      const realIpValue = headers["x-real-ip"];
+      if (Array.isArray(forwardedValue)) {
+        forwarded = getFirst(forwardedValue[0]);
+      } else {
+        forwarded = getFirst(forwardedValue);
+      }
+      if (Array.isArray(realIpValue)) {
+        realIp = getFirst(realIpValue[0]);
+      } else {
+        realIp = getFirst(realIpValue);
+      }
+    }
+
     return forwarded || realIp || crypto.randomUUID();
   }
 
-  // When not trusting proxy headers, give each request a unique token to avoid
-  // pooling clients into a shared "unknown" bucket.
   return crypto.randomUUID();
 }
 
