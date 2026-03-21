@@ -18,13 +18,24 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
+    let page = parseInt(searchParams.get("page") || "1");
     const status = searchParams.get("status");
     const search = searchParams.get("search");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
+    let sortBy = searchParams.get("sortBy") || "createdAt";
+    let sortOrder = searchParams.get("sortOrder") || "desc";
+
+    const allowedSortFields = ["createdAt", "updatedAt", "total", "status"];
+    if (!allowedSortFields.includes(sortBy)) {
+      sortBy = "createdAt";
+    }
+    if (sortOrder !== "asc" && sortOrder !== "desc") {
+      sortOrder = "desc";
+    }
+    if (Number.isNaN(page) || !Number.isInteger(page) || page < 1) {
+      page = 1;
+    }
 
     const where: Record<string, unknown> = {};
 
@@ -43,12 +54,17 @@ export async function GET(request: NextRequest) {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) {
-        (where.createdAt as Record<string, Date>).gte = new Date(startDate);
+        const parsedStart = new Date(startDate);
+        if (!isNaN(parsedStart.getTime())) {
+          (where.createdAt as Record<string, Date>).gte = parsedStart;
+        }
       }
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        (where.createdAt as Record<string, Date>).lte = end;
+        const parsedEnd = new Date(endDate);
+        if (!isNaN(parsedEnd.getTime())) {
+          parsedEnd.setHours(23, 59, 59, 999);
+          (where.createdAt as Record<string, Date>).lte = parsedEnd;
+        }
       }
     }
 

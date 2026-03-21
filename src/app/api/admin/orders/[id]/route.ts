@@ -101,29 +101,23 @@ export async function PUT(
     }
 
     if (status === "CANCELLED" && existingOrder.status !== "CANCELLED") {
-      const updateData: Record<string, unknown> = {};
-
-      if (restoreStock) {
-        await Promise.all(
-          existingOrder.items.map((item) =>
-            prisma.product.update({
+      const order = await prisma.$transaction(async (tx) => {
+        if (restoreStock) {
+          for (const item of existingOrder.items) {
+            await tx.product.update({
               where: { id: item.productId },
               data: { stock: { increment: item.quantity } },
-            }),
-          ),
-        );
-        updateData.status = "CANCELLED";
-      } else {
-        updateData.status = "CANCELLED";
-      }
-
-      const order = await prisma.order.update({
-        where: { id },
-        data: updateData,
-        include: {
-          user: { select: { id: true, name: true, email: true } },
-          items: { include: { product: true } },
-        },
+            });
+          }
+        }
+        return tx.order.update({
+          where: { id },
+          data: { status: "CANCELLED" },
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            items: { include: { product: true } },
+          },
+        });
       });
 
       return NextResponse.json({
@@ -134,6 +128,22 @@ export async function PUT(
       });
     }
 
+    let validatedEstimatedDelivery: Date | null = null;
+    if (estimatedDelivery !== undefined) {
+      if (estimatedDelivery === null) {
+        validatedEstimatedDelivery = null;
+      } else {
+        const ts = Date.parse(estimatedDelivery);
+        if (isNaN(ts)) {
+          return NextResponse.json(
+            { error: "Invalid estimated delivery date" },
+            { status: 400 },
+          );
+        }
+        validatedEstimatedDelivery = new Date(ts);
+      }
+    }
+
     const order = await prisma.order.update({
       where: { id },
       data: {
@@ -141,7 +151,7 @@ export async function PUT(
         ...(trackingNumber !== undefined && { trackingNumber }),
         ...(carrier !== undefined && { carrier }),
         ...(estimatedDelivery !== undefined && {
-          estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : null,
+          estimatedDelivery: validatedEstimatedDelivery,
         }),
       },
       include: {

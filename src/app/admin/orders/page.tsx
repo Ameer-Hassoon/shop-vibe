@@ -148,7 +148,8 @@ export default function AdminOrdersPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const locale = useLanguage.getState().language === "ar" ? "ar-SA" : "en-US";
+    return new Date(dateString).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -386,7 +387,7 @@ export default function AdminOrdersPage() {
                         </p>
                         {order.discountAmount > 0 && (
                           <p className="text-xs text-green-600 dark:text-green-400">
-                            -{order.discountAmount.toFixed(2)}
+                            -${order.discountAmount.toFixed(2)}
                           </p>
                         )}
                       </td>

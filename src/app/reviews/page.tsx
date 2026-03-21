@@ -32,6 +32,7 @@ export default function ReviewsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -64,7 +65,8 @@ export default function ReviewsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const locale = useLanguage.getState().language === "ar" ? "ar-SA" : "en-US";
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -90,7 +92,7 @@ export default function ReviewsPage() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Profile
+          {t("review.backToProfile")}
         </Link>
       </div>
 
@@ -109,7 +111,7 @@ export default function ReviewsPage() {
             href="/"
             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-md hover:shadow-lg"
           >
-            Browse Products
+            {t("review.browseProducts")}
           </Link>
         </div>
       ) : (
@@ -124,13 +126,13 @@ export default function ReviewsPage() {
                 <div className="flex gap-6">
                   <Link href={`/product/${review.product.id}`} className="flex-shrink-0">
                     <Image
-                      src={review.product.image}
+                      src={failedImages.has(review.product.id) ? "https://via.placeholder.com/120x120?text=N/A" : review.product.image}
                       alt={review.product.name}
                       width={120}
                       height={120}
                       className="rounded-xl object-cover hover:opacity-80 transition-opacity"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/120x120?text=N/A';
+                      onError={() => {
+                        setFailedImages((prev) => new Set(prev).add(review.product.id));
                       }}
                     />
                   </Link>
@@ -179,7 +181,7 @@ export default function ReviewsPage() {
                 disabled={page === 1}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Previous
+                {t("pagination.previous")}
               </button>
               <span className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
                 Page {page} of {totalPages}
@@ -189,7 +191,7 @@ export default function ReviewsPage() {
                 disabled={page === totalPages}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Next
+                {t("pagination.next")}
               </button>
             </div>
           )}

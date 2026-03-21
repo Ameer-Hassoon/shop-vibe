@@ -91,7 +91,7 @@ function HomePageContent() {
     const minRatingParam = minRating > 0 ? `&minRating=${minRating}` : "";
     const url = `/api/products?search=${encodeURIComponent(searchQuery)}${categoryParam ? `&category=${categoryParam}` : ""}${inStockParam}${minPriceParam}${maxPriceParam}${minRatingParam}&sortBy=${sortBy}&page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
     
-    fetch(url, { next: { revalidate: 60 } })
+    fetch(url)
       .then((res) => {
         if (!res.ok)
           throw new Error(

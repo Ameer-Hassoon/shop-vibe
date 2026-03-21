@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/store/language";
 import Link from "next/link";
 import Image from "next/image";
+
+const PLACEHOLDER_IMAGE = "https://via.placeholder.com/80x80?text=N/A";
 
 interface OrderItem {
   id: string;
@@ -62,6 +65,7 @@ export default function AdminOrderDetailPage() {
   const [estimatedDelivery, setEstimatedDelivery] = useState("");
   const [restoreStock, setRestoreStock] = useState(true);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const orderId = params.id as string;
 
@@ -435,14 +439,13 @@ export default function AdminOrderDetailPage() {
                 className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity"
               >
                 <Image
-                  src={item.product.image}
+                  src={failedImages.has(item.product.id) ? PLACEHOLDER_IMAGE : item.product.image}
                   alt={item.product.name}
                   width={80}
                   height={80}
                   className="object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "https://via.placeholder.com/80x80?text=N/A";
+                  onError={() => {
+                    setFailedImages((prev) => new Set(prev).add(item.product.id));
                   }}
                 />
               </Link>

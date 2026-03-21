@@ -90,12 +90,22 @@ export default function ProfilePage() {
     setLoadingReviews(true);
     try {
       const res = await fetch('/api/users/me/reviews');
-      if (res.ok) {
-        const data = await res.json();
-        setReviews(data.reviews);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to fetch reviews' }));
+        console.error('Failed to fetch reviews:', errorData.error || res.status);
+        setReviews([]);
+        return;
       }
+      const data = await res.json();
+      if (!data.reviews || !Array.isArray(data.reviews)) {
+        console.error('Invalid reviews data:', data);
+        setReviews([]);
+        return;
+      }
+      setReviews(data.reviews);
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
+      setReviews([]);
     } finally {
       setLoadingReviews(false);
     }

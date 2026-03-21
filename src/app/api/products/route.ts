@@ -44,13 +44,28 @@ export async function GET(request: NextRequest) {
       where.stock = { gt: 0 };
     }
 
-    if (minPriceParam > 0) {
-      where.price = { ...(where.price as object || {}), gte: minPriceParam };
+    if (minPriceParam !== 0 || maxPriceParam !== 0) {
+      if (minPriceParam !== 0 && maxPriceParam !== 0 && minPriceParam > maxPriceParam) {
+        return NextResponse.json(
+          { error: "Invalid price range: minPrice cannot be greater than maxPrice" },
+          { status: 400 },
+        );
+      }
+      where.price = {};
+      if (minPriceParam !== 0) {
+        (where.price as Record<string, number>).gte = minPriceParam;
+      }
+      if (maxPriceParam !== 0) {
+        (where.price as Record<string, number>).lte = maxPriceParam;
+      }
     }
-    if (maxPriceParam > 0) {
-      where.price = { ...(where.price as object || {}), lte: maxPriceParam };
-    }
-    if (minRatingParam > 0) {
+    if (minRatingParam !== 0) {
+      if (minRatingParam < 0 || minRatingParam > 5) {
+        return NextResponse.json(
+          { error: "Invalid rating range: minRating must be between 0 and 5" },
+          { status: 400 },
+        );
+      }
       where.averageRating = { gte: minRatingParam };
     }
 

@@ -322,6 +322,8 @@ const translations: Record<string, Record<Language, string>> = {
   "review.backToProfile": { en: "Back to Profile", ar: "العودة للملف الشخصي" },
   "review.browseProducts": { en: "Browse Products", ar: "تصفح المنتجات" },
   "review.mustPurchase": { en: "You must purchase this product before leaving a review", ar: "يجب شراء هذا المنتج قبل كتابة تقييم" },
+  "pagination.previous": { en: "Previous", ar: "السابق" },
+  "pagination.next": { en: "Next", ar: "التالي" },
   "nav.myReviews": { en: "My Reviews", ar: "تقييماتي" },
 };
 
