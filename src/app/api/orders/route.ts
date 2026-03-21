@@ -4,6 +4,44 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
+type OrderItemWithProduct = {
+  id: string;
+  productId: string;
+  quantity: number;
+  price: number;
+};
+
+async function linkViewsToOrderItems(userId: string, orderItems: OrderItemWithProduct[]) {
+  if (!userId || orderItems.length === 0) return;
+
+  const productIds = orderItems.map((item) => item.productId);
+  const productIdToOrderItemId = new Map(
+    orderItems.map((item) => [item.productId, item.id])
+  );
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const unlinkedViews = await prisma.productView.findMany({
+    where: {
+      userId,
+      productId: { in: productIds },
+      orderItemId: null,
+      createdAt: { gte: sevenDaysAgo },
+    },
+  });
+
+  for (const view of unlinkedViews) {
+    const orderItemId = productIdToOrderItemId.get(view.productId);
+    if (orderItemId) {
+      await prisma.productView.update({
+        where: { id: view.id },
+        data: { orderItemId },
+      });
+    }
+  }
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -172,6 +210,8 @@ export async function POST(request: NextRequest) {
         );
       });
     }
+
+    await linkViewsToOrderItems(userId, order.items);
 
     return NextResponse.json(order, { status: 201 });
   } catch {

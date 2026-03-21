@@ -45,6 +45,18 @@ export async function GET(request: NextRequest) {
     }
 
     if (minPriceParam !== 0 || maxPriceParam !== 0) {
+      if (!Number.isFinite(minPriceParam) || !Number.isFinite(maxPriceParam)) {
+        return NextResponse.json(
+          { error: "Invalid price values: must be finite numbers" },
+          { status: 400 },
+        );
+      }
+      if (minPriceParam < 0 || maxPriceParam < 0) {
+        return NextResponse.json(
+          { error: "Invalid price values: cannot be negative" },
+          { status: 400 },
+        );
+      }
       if (minPriceParam !== 0 && maxPriceParam !== 0 && minPriceParam > maxPriceParam) {
         return NextResponse.json(
           { error: "Invalid price range: minPrice cannot be greater than maxPrice" },
@@ -60,6 +72,12 @@ export async function GET(request: NextRequest) {
       }
     }
     if (minRatingParam !== 0) {
+      if (Number.isNaN(minRatingParam) || !Number.isFinite(minRatingParam)) {
+        return NextResponse.json(
+          { error: "Invalid rating value: must be a number" },
+          { status: 400 },
+        );
+      }
       if (minRatingParam < 0 || minRatingParam > 5) {
         return NextResponse.json(
           { error: "Invalid rating range: minRating must be between 0 and 5" },

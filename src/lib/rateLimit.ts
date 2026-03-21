@@ -7,8 +7,7 @@ export type RateLimitRecord = { count: number; timestamp: number };
  *
  * If TRUST_PROXY is enabled, we attempt to use X-Forwarded-For / X-Real-IP.
  * If those headers are missing (or TRUST_PROXY is not enabled), we return a
- * unique value per request so that clients without these headers do not share
- * a common rate-limit bucket.
+ * deterministic fallback so all untrusted requests share a stricter bucket.
  */
 export function getClientIpFromRequest(request: Request): string {
   const trustProxy = process.env.TRUST_PROXY === "true";
@@ -18,7 +17,7 @@ export function getClientIpFromRequest(request: Request): string {
     return value.split(",")[0].trim();
   };
 
-    if (trustProxy) {
+  if (trustProxy) {
     let forwarded: string | undefined;
     let realIp: string | undefined;
 
@@ -41,10 +40,26 @@ export function getClientIpFromRequest(request: Request): string {
       }
     }
 
-    return forwarded || realIp || crypto.randomUUID();
+    if (forwarded || realIp) {
+      return forwarded || realIp || "";
+    }
+
+    console.warn("Rate limit: TRUST_PROXY enabled but no forwarded/real IP headers found. Using shared bucket.");
+    return "untrusted-proxy";
   }
 
-  return crypto.randomUUID();
+  const req = request as Request & { socket?: { remoteAddress?: string } };
+  let socketIp = req.socket?.remoteAddress;
+
+  if (socketIp) {
+    if (socketIp.startsWith("::ffff:")) {
+      socketIp = socketIp.substring(7);
+    }
+    return socketIp;
+  }
+
+  console.warn("Rate limit: No socket address available. Using shared bucket.");
+  return "untrusted-proxy";
 }
 
 export function createInMemoryRateLimiter({

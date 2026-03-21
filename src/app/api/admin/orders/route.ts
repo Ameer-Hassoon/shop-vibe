@@ -52,17 +52,29 @@ export async function GET(request: NextRequest) {
     }
 
     if (startDate || endDate) {
-      where.createdAt = {};
+      let parsedStart: Date | undefined;
+      let parsedEnd: Date | undefined;
+
       if (startDate) {
-        const parsedStart = new Date(startDate);
-        if (!isNaN(parsedStart.getTime())) {
-          (where.createdAt as Record<string, Date>).gte = parsedStart;
+        const start = new Date(startDate);
+        if (!isNaN(start.getTime())) {
+          parsedStart = start;
         }
       }
       if (endDate) {
-        const parsedEnd = new Date(endDate);
-        if (!isNaN(parsedEnd.getTime())) {
-          parsedEnd.setHours(23, 59, 59, 999);
+        const end = new Date(endDate);
+        if (!isNaN(end.getTime())) {
+          end.setHours(23, 59, 59, 999);
+          parsedEnd = end;
+        }
+      }
+
+      if (parsedStart || parsedEnd) {
+        where.createdAt = {};
+        if (parsedStart) {
+          (where.createdAt as Record<string, Date>).gte = parsedStart;
+        }
+        if (parsedEnd) {
           (where.createdAt as Record<string, Date>).lte = parsedEnd;
         }
       }
