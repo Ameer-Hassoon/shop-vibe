@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useMemo } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFilters } from "@/store/filters";
 import { useLanguage } from "@/store/language";
@@ -61,6 +61,8 @@ function HomePageContent() {
   } = useFilters();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -84,8 +86,12 @@ function HomePageContent() {
     const encodedCategoryNames = categoryNames.map(cat => encodeURIComponent(cat));
     const categoryParam = encodedCategoryNames.length > 0 ? encodedCategoryNames.join(",") : "";
     const inStockParam = inStockOnly ? "&inStock=true" : "";
-    const url = `/api/products?search=${encodeURIComponent(searchQuery)}${categoryParam ? `&category=${categoryParam}` : ""}${inStockParam}&sortBy=${sortBy}&page=1&limit=1000`;
-    fetch(url, { cache: "no-store" })
+    const minPriceParam = minPrice > 0 ? `&minPrice=${minPrice}` : "";
+    const maxPriceParam = maxPrice < MAX_PRICE ? `&maxPrice=${maxPrice}` : "";
+    const minRatingParam = minRating > 0 ? `&minRating=${minRating}` : "";
+    const url = `/api/products?search=${encodeURIComponent(searchQuery)}${categoryParam ? `&category=${categoryParam}` : ""}${inStockParam}${minPriceParam}${maxPriceParam}${minRatingParam}&sortBy=${sortBy}&page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
+    
+    fetch(url, { next: { revalidate: 60 } })
       .then((res) => {
         if (!res.ok)
           throw new Error(
@@ -95,57 +101,15 @@ function HomePageContent() {
       })
       .then((data) => {
         setProducts(data.products || []);
+        setTotalProducts(data.total || 0);
+        setTotalPages(data.totalPages || 1);
         setLoading(false);
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : String(err));
         setLoading(false);
       });
-  }, [searchQuery, categories, inStockOnly, sortBy, refreshKey]);
-
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        setRefreshKey((k) => k + 1);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
-
-  const filtered = useMemo(() => {
-    let arr = products.filter((p) => {
-      const priceMatch = p.price >= minPrice && p.price <= maxPrice;
-      const ratingMatch =
-        minRating === 0 || (p.averageRating && p.averageRating >= minRating);
-      return priceMatch && ratingMatch;
-    });
-    if (sortBy === "price-low")
-      arr = [...arr].sort((a, b) => a.price - b.price);
-    else if (sortBy === "price-high")
-      arr = [...arr].sort((a, b) => b.price - a.price);
-    else if (sortBy === "name")
-      arr = [...arr].sort((a, b) => a.name.localeCompare(b.name));
-    else if (sortBy === "rating")
-      arr = [...arr].sort(
-        (a, b) => (b.averageRating || 0) - (a.averageRating || 0),
-      );
-    else if (sortBy === "newest") {
-      arr = [...arr].sort((a, b) => {
-        if (!a.createdAt && b.createdAt) return 1;
-        if (!b.createdAt && a.createdAt) return -1;
-        if (!a.createdAt && !b.createdAt) return 0;
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      });
-    }
-    return arr;
-  }, [products, minPrice, maxPrice, minRating, sortBy]);
-
-  const totalProducts = filtered.length;
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  }, [searchQuery, categories, inStockOnly, sortBy, refreshKey, currentPage, minPrice, maxPrice, minRating]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));
@@ -153,10 +117,7 @@ function HomePageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, totalPages]);
 
-  const displayed = filtered.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  );
+  const displayed = products;
 
   const hasFilters =
     categories.length > 0 ||

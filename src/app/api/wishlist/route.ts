@@ -34,7 +34,11 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(wishlistItems);
+    return NextResponse.json(wishlistItems, {
+      headers: {
+        'Cache-Control': 'private, no-store',
+      },
+    });
   } catch (error) {
     console.error("Get wishlist error:", error);
     return NextResponse.json(

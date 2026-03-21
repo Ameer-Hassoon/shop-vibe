@@ -163,6 +163,7 @@ export default function ProductPage() {
             src={product.image}
             alt={product.name}
             fill
+            priority
             sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
             onError={(e) => {

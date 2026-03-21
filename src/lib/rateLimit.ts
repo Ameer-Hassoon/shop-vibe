@@ -41,10 +41,10 @@ export function getClientIpFromRequest(request: Request): string {
       }
     }
 
-    return forwarded || realIp || crypto.randomUUID();
+    return forwarded || realIp || "unknown";
   }
 
-  return crypto.randomUUID();
+  return "unknown";
 }
 
 export function createInMemoryRateLimiter({

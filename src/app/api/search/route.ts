@@ -44,7 +44,11 @@ export async function GET(request: NextRequest) {
       inStock: p.stock > 0,
     }));
 
-    return NextResponse.json(suggestions);
+    return NextResponse.json(suggestions, {
+      headers: {
+        'Cache-Control': 'private, max-age=30',
+      },
+    });
   } catch (error) {
     console.error("Search error:", error);
     return NextResponse.json({ error: "Search failed" }, { status: 500 });

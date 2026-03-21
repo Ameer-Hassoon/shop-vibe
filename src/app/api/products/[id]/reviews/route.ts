@@ -10,30 +10,30 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const reviews = await prisma.review.findMany({
-      where: { productId: id, isApproved: true },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
+    const [reviews, aggregate, ratingDistribution] = await Promise.all([
+      prisma.review.findMany({
+        where: { productId: id, isApproved: true },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const aggregate = await prisma.review.aggregate({
-      where: { productId: id, isApproved: true },
-      _avg: { rating: true },
-      _count: true,
-    });
-
-    const ratingDistribution = await prisma.review.groupBy({
-      by: ["rating"],
-      where: { productId: id, isApproved: true },
-      _count: true,
-    });
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.review.aggregate({
+        where: { productId: id, isApproved: true },
+        _avg: { rating: true },
+        _count: true,
+      }),
+      prisma.review.groupBy({
+        by: ["rating"],
+        where: { productId: id, isApproved: true },
+        _count: true,
+      }),
+    ]);
 
     const distribution: Record<number, number> = {
       1: 0,
@@ -54,6 +54,10 @@ export async function GET(
         averageRating: aggregate._avg.rating || 0,
         totalReviews: aggregate._count,
         distribution,
+      },
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },
     });
   } catch (error) {
@@ -81,6 +85,23 @@ export async function POST(
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const hasPurchased = await prisma.orderItem.findFirst({
+      where: {
+        productId,
+        order: {
+          userId,
+          status: { in: ["CONFIRMED", "SHIPPED", "DELIVERED"] },
+        },
+      },
+    });
+
+    if (!hasPurchased) {
+      return NextResponse.json(
+        { error: "You must purchase this product before leaving a review" },
+        { status: 403 },
+      );
     }
 
     const { rating, title, content } = await request.json();
@@ -112,16 +133,6 @@ export async function POST(
       );
     }
 
-    const hasPurchased = await prisma.orderItem.findFirst({
-      where: {
-        productId,
-        order: {
-          userId,
-          status: { in: ["CONFIRMED", "SHIPPED", "DELIVERED"] },
-        },
-      },
-    });
-
     const review = await prisma.review.create({
       data: {
         userId,
@@ -129,8 +140,8 @@ export async function POST(
         rating,
         title: title?.trim() || null,
         content: content.trim(),
-        isVerified: !!hasPurchased,
-        isApproved: !!hasPurchased, // Only auto-approve for verified purchasers
+        isVerified: true,
+        isApproved: true,
       },
       include: {
         user: {

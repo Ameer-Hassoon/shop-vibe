@@ -10,6 +10,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const category = searchParams.get("category") || "";
+    const minPriceParam = parseFloat(searchParams.get("minPrice") || "0");
+    const maxPriceParam = parseFloat(searchParams.get("maxPrice") || "0");
+    const minRatingParam = parseFloat(searchParams.get("minRating") || "0");
     let parsedPage = parseInt(searchParams.get("page") || "1");
     let parsedLimit = parseInt(
       searchParams.get("limit") || ITEMS_PER_PAGE.toString(),
@@ -39,6 +42,16 @@ export async function GET(request: NextRequest) {
     const inStockOnly = searchParams.get("inStock") === "true";
     if (inStockOnly) {
       where.stock = { gt: 0 };
+    }
+
+    if (minPriceParam > 0) {
+      where.price = { ...(where.price as object || {}), gte: minPriceParam };
+    }
+    if (maxPriceParam > 0) {
+      where.price = { ...(where.price as object || {}), lte: maxPriceParam };
+    }
+    if (minRatingParam > 0) {
+      where.averageRating = { gte: minRatingParam };
     }
 
     const sortBy = searchParams.get("sortBy") || "newest";

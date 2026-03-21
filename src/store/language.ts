@@ -309,6 +309,20 @@ const translations: Record<string, Record<Language, string>> = {
   // Review
   "review.titlePlaceholder": { en: "Summarize your experience", ar: "لخص تجربتك" },
   "review.contentPlaceholder": { en: "Share your experience with this product...", ar: "شارك تجربتك مع هذا المنتج..." },
+  "review.myReviews": { en: "My Reviews", ar: "تقييماتي" },
+  "review.hideReviews": { en: "Hide My Reviews", ar: "إخفاء تقييماتي" },
+  "review.viewReviews": { en: "View My Reviews", ar: "عرض تقييماتي" },
+  "review.recentReviews": { en: "Recent Reviews", ar: "التقييمات الأخيرة" },
+  "review.noReviews": { en: "No reviews yet", ar: "لا توجد تقييمات بعد" },
+  "review.writeFirst": { en: "Write your first review", ar: "اكتب تقييمك الأول" },
+  "review.verifiedPurchase": { en: "Verified Purchase", ar: "مشتري موثق" },
+  "review.editReview": { en: "Edit", ar: "تعديل" },
+  "review.viewProduct": { en: "View Product", ar: "عرض المنتج" },
+  "review.viewAll": { en: "View all {{count}} reviews", ar: "عرض الكل {{count}} تقييمات" },
+  "review.backToProfile": { en: "Back to Profile", ar: "العودة للملف الشخصي" },
+  "review.browseProducts": { en: "Browse Products", ar: "تصفح المنتجات" },
+  "review.mustPurchase": { en: "You must purchase this product before leaving a review", ar: "يجب شراء هذا المنتج قبل كتابة تقييم" },
+  "nav.myReviews": { en: "My Reviews", ar: "تقييماتي" },
 };
 
 export const useLanguage = create<LanguageState>()(

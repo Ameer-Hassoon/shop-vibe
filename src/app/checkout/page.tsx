@@ -120,7 +120,11 @@ export default function CheckoutPage() {
           </p>
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <p className="text-sm text-gray-500">{t("checkout.confirmationSent")}</p>
-            <p className="font-medium">{formData.email}</p>
+            {formData.email ? (
+              <p className="font-medium">{formData.email}</p>
+            ) : (
+              <p className="font-medium text-gray-400">—</p>
+            )}
           </div>
           {paymentMethod === "cod" && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">

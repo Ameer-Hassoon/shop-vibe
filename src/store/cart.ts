@@ -69,3 +69,8 @@ export const useCartStore = create<CartState>()(
     }
   )
 );
+
+const selectTotalItems = (state: CartState) => 
+  state.items.reduce((sum, item) => sum + item.quantity, 0);
+
+export { selectTotalItems };
