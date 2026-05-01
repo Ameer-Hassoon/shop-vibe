@@ -1,7 +1,5 @@
 "use client";
 
-import { useLanguage } from "@/store/language";
-
 interface OrderTrackingTimelineProps {
   status: string;
   estimatedDelivery?: string | null;
@@ -23,11 +21,24 @@ const statusSteps = [
   { key: "DELIVERED", icon: "M5 13l4 4L19 7" },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "Order Placed",
+  PROCESSING: "Processing",
+  SHIPPED: "Shipped",
+  DELIVERED: "Delivered",
+  CANCELLED_ORDER: "Order Cancelled",
+  REFUNDED_ORDER: "Order Refunded",
+  cancelledText: "This order has been cancelled.",
+  refundedText: "This order has been refunded.",
+  inProgress: "In progress",
+  orderStatus: "Order Status",
+  estimatedDelivery: "Estimated Delivery",
+};
+
 export function OrderTrackingTimeline({
   status,
   estimatedDelivery,
 }: OrderTrackingTimelineProps) {
-  const t = useLanguage((state) => state.t);
   let currentIndex = statusSteps.findIndex((s) => s.key === status);
   const isCancelled = status === "CANCELLED" || status === "REFUNDED";
   const isTerminalStatus = (s: string) =>
@@ -49,20 +60,18 @@ export function OrderTrackingTimeline({
   };
 
   const getStepLabel = (key: string) => {
-    const labelKey = `tracking.${key.toLowerCase()}` as const;
-    const label = t(labelKey);
-    return label !== labelKey ? label : key;
+    return STATUS_LABELS[key] || key;
   };
 
   const getStatusTitle = () => {
-    if (status === "CANCELLED") return t("status.CANCELLED_ORDER");
-    if (status === "REFUNDED") return t("status.REFUNDED_ORDER");
-    return t("tracking.orderStatus");
+    if (status === "CANCELLED") return STATUS_LABELS["CANCELLED_ORDER"];
+    if (status === "REFUNDED") return STATUS_LABELS["REFUNDED_ORDER"];
+    return STATUS_LABELS["orderStatus"];
   };
 
   const getCancelledText = () => {
-    if (status === "CANCELLED") return t("status.cancelledText");
-    return t("status.refundedText");
+    if (status === "CANCELLED") return STATUS_LABELS["cancelledText"];
+    return STATUS_LABELS["refundedText"];
   };
 
   return (
@@ -134,7 +143,7 @@ export function OrderTrackingTimeline({
                       </p>
                       {isCurrent && !isTerminalStatus(status) && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {t("tracking.inProgress")}
+                          {STATUS_LABELS["inProgress"]}
                         </p>
                       )}
                     </div>
@@ -146,7 +155,7 @@ export function OrderTrackingTimeline({
 
           {estimatedDelivery && status !== "DELIVERED" && (
             <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t("tracking.estimatedDelivery")}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{STATUS_LABELS["estimatedDelivery"]}</p>
               <p className="font-medium text-green-700 dark:text-green-400">
                 {formatDate(estimatedDelivery)}
               </p>

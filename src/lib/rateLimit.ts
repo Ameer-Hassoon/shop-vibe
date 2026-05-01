@@ -25,7 +25,10 @@ export function getClientIpFromRequest(request: Request): string {
       forwarded = getFirst(request.headers.get("x-forwarded-for"));
       realIp = getFirst(request.headers.get("x-real-ip"));
     } else if (request.headers && typeof request.headers === "object") {
-      const headers = request.headers as unknown as Record<string, string | string[] | undefined>;
+      const headers = request.headers as unknown as Record<
+        string,
+        string | string[] | undefined
+      >;
       const forwardedValue = headers["x-forwarded-for"];
       const realIpValue = headers["x-real-ip"];
       if (Array.isArray(forwardedValue)) {
@@ -41,10 +44,12 @@ export function getClientIpFromRequest(request: Request): string {
     }
 
     if (forwarded || realIp) {
-      return forwarded || realIp || "";
+      return (forwarded || realIp)!;
     }
 
-    console.warn("Rate limit: TRUST_PROXY enabled but no forwarded/real IP headers found. Using shared bucket.");
+    console.warn(
+      "Rate limit: TRUST_PROXY enabled but no forwarded/real IP headers found. Using shared bucket.",
+    );
     return "untrusted-proxy";
   }
 

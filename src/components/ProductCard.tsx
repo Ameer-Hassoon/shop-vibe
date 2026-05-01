@@ -6,7 +6,37 @@ import Image from "next/image";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
-import { useLanguage } from "@/store/language";
+
+const CATEGORY_NAMES: Record<string, string> = {
+  "electronics": "Electronics",
+  "computers & laptops": "Computers & Laptops",
+  "phones & tablets": "Phones & Tablets",
+  "cameras & photography": "Cameras & Photography",
+  "tv & home entertainment": "TV & Home Entertainment",
+  "audio & headphones": "Audio & Headphones",
+  "clothing": "Clothing",
+  "shoes & footwear": "Shoes & Footwear",
+  "jewelry & watches": "Jewelry & Watches",
+  "bags & backpacks": "Bags & Backpacks",
+  "home & garden": "Home & Garden",
+  "kitchen & dining": "Kitchen & Dining",
+  "furniture": "Furniture",
+  "lighting": "Lighting",
+  "sports & outdoors": "Sports & Outdoors",
+  "fitness equipment": "Fitness Equipment",
+  "cycling": "Cycling",
+  "camping & hiking": "Camping & Hiking",
+  "books": "Books",
+  "toys & games": "Toys & Games",
+  "beauty & personal care": "Beauty & Personal Care",
+  "automotive": "Automotive",
+  "pet supplies": "Pet Supplies",
+  "office supplies": "Office Supplies",
+};
+
+function translateCategory(category: string): string {
+  return CATEGORY_NAMES[category.toLowerCase()] || category;
+}
 
 interface ProductCardProps {
   product: Product;
@@ -15,7 +45,6 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addToCart);
   const { toggleItem, isInWishlist } = useWishlistStore();
-  const { t, translateCategory } = useLanguage();
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -106,11 +135,11 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
             {product.stock <= 5 && product.stock > 0 && (
               <p className="text-xs text-orange-500">
-                {t("product.lowStock", { count: product.stock })}
+                Only {product.stock} left
               </p>
             )}
             {product.stock === 0 && (
-              <p className="text-xs text-red-500">{t("product.outOfStock")}</p>
+              <p className="text-xs text-red-500">Out of Stock</p>
             )}
           </div>
           <button
@@ -121,7 +150,7 @@ export function ProductCard({ product }: ProductCardProps) {
             disabled={product.stock <= 0}
             className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
           >
-            {product.stock > 0 ? t("product.add") : t("product.outOfStock")}
+            {product.stock > 0 ? "Add" : "Out of Stock"}
           </button>
         </div>
       </div>

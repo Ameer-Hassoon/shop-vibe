@@ -11,12 +11,15 @@ type OrderItemWithProduct = {
   price: number;
 };
 
-async function linkViewsToOrderItems(userId: string, orderItems: OrderItemWithProduct[]) {
+async function linkViewsToOrderItems(
+  userId: string,
+  orderItems: OrderItemWithProduct[],
+) {
   if (!userId || orderItems.length === 0) return;
 
   const productIds = orderItems.map((item) => item.productId);
   const productIdToOrderItemId = new Map(
-    orderItems.map((item) => [item.productId, item.id])
+    orderItems.map((item) => [item.productId, item.id]),
   );
 
   const sevenDaysAgo = new Date();
@@ -211,7 +214,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    await linkViewsToOrderItems(userId, order.items);
+    try {
+      await linkViewsToOrderItems(userId, order.items);
+    } catch (error) {
+      console.error("Failed to link views to order items:", error);
+    }
 
     return NextResponse.json(order, { status: 201 });
   } catch {

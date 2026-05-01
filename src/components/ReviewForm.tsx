@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { StarRating } from "./StarRating";
-import { useLanguage } from "@/store/language";
 
 interface Review {
   id: string;
@@ -28,7 +27,6 @@ export function ReviewForm({
   onSubmit,
   onCancel,
 }: ReviewFormProps) {
-  const { t } = useLanguage();
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -119,7 +117,7 @@ export function ReviewForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={100}
-          placeholder={t("review.titlePlaceholder")}
+          placeholder="Summarize your experience"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
@@ -137,7 +135,7 @@ export function ReviewForm({
           onChange={(e) => setContent(e.target.value)}
           rows={4}
           maxLength={1000}
-          placeholder={t("review.contentPlaceholder")}
+          placeholder="Share your experience with this product..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <p className="text-xs text-gray-500 mt-1">

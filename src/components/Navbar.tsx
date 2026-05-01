@@ -1,15 +1,45 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useCartStore } from "@/store/cart";
 import { useSearchHistory } from "@/store/searchHistory";
 import { useTheme } from "@/store/theme";
-import { useLanguage } from "@/store/language";
 import { Product } from "@/types";
+import LanguageSwitcher from "./LanguageSwitcher";
+
+const CATEGORY_NAMES: Record<string, string> = {
+  "electronics": "Electronics",
+  "computers & laptops": "Computers & Laptops",
+  "phones & tablets": "Phones & Tablets",
+  "cameras & photography": "Cameras & Photography",
+  "tv & home entertainment": "TV & Home Entertainment",
+  "audio & headphones": "Audio & Headphones",
+  "clothing": "Clothing",
+  "shoes & footwear": "Shoes & Footwear",
+  "jewelry & watches": "Jewelry & Watches",
+  "bags & backpacks": "Bags & Backpacks",
+  "home & garden": "Home & Garden",
+  "kitchen & dining": "Kitchen & Dining",
+  "furniture": "Furniture",
+  "lighting": "Lighting",
+  "sports & outdoors": "Sports & Outdoors",
+  "fitness equipment": "Fitness Equipment",
+  "cycling": "Cycling",
+  "camping & hiking": "Camping & Hiking",
+  "books": "Books",
+  "toys & games": "Toys & Games",
+  "beauty & personal care": "Beauty & Personal Care",
+  "automotive": "Automotive",
+  "pet supplies": "Pet Supplies",
+  "office supplies": "Office Supplies",
+};
+
+function translateCategory(category: string): string {
+  return CATEGORY_NAMES[category.toLowerCase()] || category;
+}
 
 export default function Navbar() {
   const [search, setSearch] = useState("");
@@ -21,12 +51,12 @@ export default function Navbar() {
   const searchRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const totalItems = useCartStore((state) => 
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
   const { searches, addSearch, removeSearch, clearHistory } = useSearchHistory();
   const { theme, toggleTheme } = useTheme();
-  const { language, setLanguage, t, translateCategory } = useLanguage();
 
   useEffect(() => {
     setMounted(true);
@@ -113,7 +143,7 @@ export default function Navbar() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder={t("nav.search")}
+                  placeholder="Search products..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onFocus={() => {
@@ -149,7 +179,7 @@ export default function Navbar() {
             {mounted && showSuggestions && search.trim().length === 0 && searches.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 search-dropdown">
                 <div className="px-4 py-2">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t("search.recent")}</span>
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent</span>
                 </div>
                 {searches.map((query, index) => (
                   <button
@@ -168,7 +198,7 @@ export default function Navbar() {
                     onClick={clearHistory}
                     className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
                   >
-                    {t("search.clear")}
+                    Clear recent searches
                   </button>
                 </div>
               </div>
@@ -211,17 +241,19 @@ export default function Navbar() {
                   }}
                   className="w-full px-4 py-3.5 text-center font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                 >
-                  {t("search.seeAll")} &quot;{search}&quot;
+                  See all results for &quot;{search}&quot;
                 </button>
               </div>
             )}
           </div>
 
           <div className="flex items-center space-x-2">
+            <LanguageSwitcher />
+            
             <button
               onClick={toggleTheme}
               className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
-              title={theme === "dark" ? t("navbar.switchToLight") : t("navbar.switchToDark")}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
               {theme === "dark" ? (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,14 +264,6 @@ export default function Navbar() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
-            </button>
-
-            <button
-              onClick={() => setLanguage(language === "en" ? "ar" : "en")}
-              className="px-2 py-1 text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors border border-gray-300 rounded"
-              title={language === "en" ? t("navbar.switchToArabic") : t("navbar.switchToEnglish")}
-            >
-              {language === "en" ? "العربية" : "English"}
             </button>
 
             {session && (
@@ -371,7 +395,7 @@ export default function Navbar() {
                           d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
                         />
                       </svg>
-                      {t("nav.myReviews")}
+                      My Reviews
                     </Link>
                     <Link
                       href="/orders"
@@ -391,7 +415,7 @@ export default function Navbar() {
                           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                         />
                       </svg>
-                      {t("nav.orders")}
+                      Order History
                     </Link>
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button

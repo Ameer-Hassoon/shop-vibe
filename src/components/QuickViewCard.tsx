@@ -4,8 +4,38 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Product } from "@/types";
-import { useLanguage } from "@/store/language";
 import { StarRating } from "./StarRating";
+
+const CATEGORY_NAMES: Record<string, string> = {
+  "electronics": "Electronics",
+  "computers & laptops": "Computers & Laptops",
+  "phones & tablets": "Phones & Tablets",
+  "cameras & photography": "Cameras & Photography",
+  "tv & home entertainment": "TV & Home Entertainment",
+  "audio & headphones": "Audio & Headphones",
+  "clothing": "Clothing",
+  "shoes & footwear": "Shoes & Footwear",
+  "jewelry & watches": "Jewelry & Watches",
+  "bags & backpacks": "Bags & Backpacks",
+  "home & garden": "Home & Garden",
+  "kitchen & dining": "Kitchen & Dining",
+  "furniture": "Furniture",
+  "lighting": "Lighting",
+  "sports & outdoors": "Sports & Outdoors",
+  "fitness equipment": "Fitness Equipment",
+  "cycling": "Cycling",
+  "camping & hiking": "Camping & Hiking",
+  "books": "Books",
+  "toys & games": "Toys & Games",
+  "beauty & personal care": "Beauty & Personal Care",
+  "automotive": "Automotive",
+  "pet supplies": "Pet Supplies",
+  "office supplies": "Office Supplies",
+};
+
+function translateCategory(category: string): string {
+  return CATEGORY_NAMES[category.toLowerCase()] || category;
+}
 
 interface QuickViewCardProps {
   product: Product;
@@ -24,7 +54,6 @@ export function QuickViewCard({
   reviewCount: initialReviewCount = 0,
   onClose,
 }: QuickViewCardProps) {
-  const { translateCategory } = useLanguage();
   const cardRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [rating, setRating] = useState(initialRating);
