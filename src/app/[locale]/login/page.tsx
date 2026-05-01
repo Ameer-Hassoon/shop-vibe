@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Link, useRouter } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export default function LoginPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,17 +28,17 @@ export default function LoginPage() {
 
       if (result?.error) {
         if (result.error === "CredentialsSignin") {
-          setError("Invalid email or password");
+          setError(t("auth.invalidCredentials"));
         } else {
-          setError("An error occurred. Please try again.");
+          setError(t("auth.genericError"));
         }
       } else {
-        router.push("/");
+        router.push("/", { locale });
         router.refresh();
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError("An error occurred. Please try again.");
+      setError(t("auth.genericError"));
     } finally {
       setLoading(false);
     }
@@ -48,7 +49,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">{t('auth.welcomeBack')}</h1>
-          <p className="text-gray-600 mt-2">Sign in to continue</p>
+          <p className="text-gray-600 mt-2">{t("auth.signInToContinue")}</p>
         </div>
 
         <form
@@ -66,7 +67,7 @@ export default function LoginPage() {
               htmlFor="email"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Email
+              {t("auth.email")}
             </label>
             <input
               id="email"
@@ -75,7 +76,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="you@example.com"
+              placeholder={t("auth.enterYourEmail")}
             />
           </div>
 
@@ -84,7 +85,7 @@ export default function LoginPage() {
               htmlFor="password"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Password
+              {t("auth.password")}
             </label>
             <input
               id="password"
@@ -93,7 +94,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Enter your password"
+              placeholder={t("auth.enterYourPassword")}
             />
           </div>
 
@@ -102,7 +103,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
           >
-            {loading ? "Signing in..." : t('common.login')}
+            {loading ? t("auth.signingIn") : t('common.login')}
           </button>
 
           <p className="mt-4 text-center text-sm text-gray-600">

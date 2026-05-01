@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface StarRatingProps {
   rating: number;
   maxRating?: number;
@@ -17,6 +19,7 @@ export function StarRating({
   id,
   onChange,
 }: StarRatingProps) {
+  const t = useTranslations();
   const sizeClasses = {
     sm: "w-4 h-4",
     md: "w-5 h-5",
@@ -63,8 +66,8 @@ export function StarRating({
               key={index}
               id={index === 0 ? id : undefined}
               type="button"
-              onClick={() => handleClick(index)}
-              aria-label={`Rate ${index + 1} of ${maxRating} stars`}
+            onClick={() => handleClick(index)}
+              aria-label={t("review.rateStars", { rating: index + 1, maxRating })}
               className={`${sizeClasses[size]} cursor-pointer hover:scale-110 transition-transform`}
             >
               {star}

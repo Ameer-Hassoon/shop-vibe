@@ -1,9 +1,7 @@
 "use client";
 
-
-import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
+import { Link } from "@/i18n/navigation";
 
 export default function AdminPage() {
   const t = useTranslations();
@@ -16,15 +14,17 @@ export default function AdminPage() {
           href="/admin/create"
           className="p-6 bg-white rounded-xl shadow-sm border hover:shadow-md transition"
         >
-          <h2 className="text-xl font-semibold mb-2">{t('common.add')} Product</h2>
-          <p className="text-gray-600">Create a new product</p>
+          <h2 className="text-xl font-semibold mb-2">
+            {t('common.add')} {t('common.product')}
+          </h2>
+          <p className="text-gray-600">{t("admin.createProductDesc")}</p>
         </Link>
         <Link
           href="/admin/orders"
           className="p-6 bg-white rounded-xl shadow-sm border hover:shadow-md transition"
         >
           <h2 className="text-xl font-semibold mb-2">{t('common.orders')}</h2>
-          <p className="text-gray-600">Manage orders</p>
+          <p className="text-gray-600">{t("admin.manageOrdersDesc")}</p>
         </Link>
       </div>
     </div>

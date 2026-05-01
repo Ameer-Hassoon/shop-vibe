@@ -1,42 +1,13 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
-
-const CATEGORY_NAMES: Record<string, string> = {
-  "electronics": "Electronics",
-  "computers & laptops": "Computers & Laptops",
-  "phones & tablets": "Phones & Tablets",
-  "cameras & photography": "Cameras & Photography",
-  "tv & home entertainment": "TV & Home Entertainment",
-  "audio & headphones": "Audio & Headphones",
-  "clothing": "Clothing",
-  "shoes & footwear": "Shoes & Footwear",
-  "jewelry & watches": "Jewelry & Watches",
-  "bags & backpacks": "Bags & Backpacks",
-  "home & garden": "Home & Garden",
-  "kitchen & dining": "Kitchen & Dining",
-  "furniture": "Furniture",
-  "lighting": "Lighting",
-  "sports & outdoors": "Sports & Outdoors",
-  "fitness equipment": "Fitness Equipment",
-  "cycling": "Cycling",
-  "camping & hiking": "Camping & Hiking",
-  "books": "Books",
-  "toys & games": "Toys & Games",
-  "beauty & personal care": "Beauty & Personal Care",
-  "automotive": "Automotive",
-  "pet supplies": "Pet Supplies",
-  "office supplies": "Office Supplies",
-};
-
-function translateCategory(category: string): string {
-  return CATEGORY_NAMES[category.toLowerCase()] || category;
-}
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { translateCategory } from "@/lib/categoryTranslations";
 
 interface ProductCardProps {
   product: Product;
@@ -45,6 +16,8 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addToCart);
   const { toggleItem, isInWishlist } = useWishlistStore();
+  const locale = useLocale();
+  const t = useTranslations();
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -64,14 +37,14 @@ export function ProductCard({ product }: ProductCardProps) {
       onMouseLeave={() => setIsHovering(false)}
     >
       <div className="relative">
-        <Link href={`/product/${product.id}`} className="block">
+        <Link href={`/product/${product.id}`} locale={locale} className="block">
           <div
             className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer"
             onMouseMove={handleMouseMove}
           >
             {imageError ? (
               <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-                <span className="text-xs">No image</span>
+                <span className="text-xs">{t("common.noImage")}</span>
               </div>
             ) : (
               <Image
@@ -90,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
             <div className="absolute top-2 left-2 z-10">
               <span className="px-2 py-1 bg-white/90 text-xs font-medium text-gray-700 rounded-md product-card-category">
-                {translateCategory(product.category)}
+                {translateCategory(product.category, t)}
               </span>
             </div>
             {isHovering && (
@@ -104,7 +77,9 @@ export function ProductCard({ product }: ProductCardProps) {
             e.stopPropagation();
             toggleItem(product.id);
           }}
-          aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+          aria-label={
+            inWishlist ? t("product.removeFromWishlist") : t("product.addToWishlist")
+          }
           className="absolute top-2 right-2 z-20 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
         >
           <svg
@@ -123,7 +98,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </button>
       </div>
       <div className="p-4">
-        <Link href={`/product/${product.id}`}>
+        <Link href={`/product/${product.id}`} locale={locale}>
           <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-indigo-600">
             {product.name}
           </h3>
@@ -135,11 +110,11 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
             {product.stock <= 5 && product.stock > 0 && (
               <p className="text-xs text-orange-500">
-                Only {product.stock} left
+                {t("product.onlyLeft", { count: product.stock })}
               </p>
             )}
             {product.stock === 0 && (
-              <p className="text-xs text-red-500">Out of Stock</p>
+              <p className="text-xs text-red-500">{t("product.outOfStock")}</p>
             )}
           </div>
           <button
@@ -150,7 +125,7 @@ export function ProductCard({ product }: ProductCardProps) {
             disabled={product.stock <= 0}
             className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
           >
-            {product.stock > 0 ? "Add" : "Out of Stock"}
+            {product.stock > 0 ? t("product.addToCart") : t("product.outOfStock")}
           </button>
         </div>
       </div>

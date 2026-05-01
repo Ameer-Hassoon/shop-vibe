@@ -1,7 +1,34 @@
 {
+  "cat": {
+    "electronics": "Electronics",
+    "computers": "Computers & Laptops",
+    "phones": "Phones & Tablets",
+    "cameras": "Cameras & Photography",
+    "tv": "TV & Home Entertainment",
+    "audio": "Audio & Headphones",
+    "clothing": "Clothing",
+    "shoes": "Shoes & Footwear",
+    "jewelry": "Jewelry & Watches",
+    "bags": "Bags & Backpacks",
+    "home": "Home & Garden",
+    "kitchen": "Kitchen & Dining",
+    "furniture": "Furniture",
+    "lighting": "Lighting",
+    "sports": "Sports & Outdoors",
+    "fitness": "Fitness & Gym",
+    "cycling": "Cycling",
+    "camping": "Camping & Hiking",
+    "books": "Books & Media",
+    "toys": "Toys & Games",
+    "beauty": "Health & Beauty",
+    "automotive": "Automotive",
+    "pets": "Pet Supplies",
+    "office": "Office & School"
+  },
   "common": {
     "home": "Home",
     "shop": "Shop",
+    "product": "Product",
     "cart": "Cart",
     "wishlist": "Wishlist",
     "login": "Login",
@@ -12,6 +39,10 @@
     "admin": "Admin",
     "search": "Search",
     "searchPlaceholder": "Search products...",
+    "user": "User",
+    "english": "English",
+    "arabic": "Arabic",
+    "noImage": "No image",
     "loading": "Loading...",
     "error": "An error occurred",
     "retry": "Retry",
@@ -25,13 +56,72 @@
     "next": "Next",
     "previous": "Previous",
     "viewAll": "View All",
-    "readMore": "Read More"
+    "readMore": "Read More",
+    "comingSoon": "Coming soon..."
   },
   "nav": {
     "categories": "Categories",
     "newArrivals": "New Arrivals",
     "bestSellers": "Best Sellers",
     "sale": "Sale"
+  },
+  "navbar": {
+    "recentSearches": "Recent",
+    "clearRecentSearches": "Clear recent searches",
+    "seeAllResultsFor": "See all results for \"{search}\"",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode",
+    "myProfile": "My Profile",
+    "myReviews": "My Reviews",
+    "orderHistory": "Order History",
+    "signOut": "Sign Out",
+    "adminBadge": "Admin"
+  },
+  "admin": {
+    "createProductDesc": "Create a new product",
+    "manageOrdersDesc": "Manage orders"
+  },
+  "filters": {
+    "filters": "Filters",
+    "clearAll": "Clear all",
+    "priceRange": "Price Range",
+    "rating": "Rating",
+    "andUp": "& up",
+    "inStockOnly": "In Stock Only",
+    "minimumValue": "Minimum value",
+    "maximumValue": "Maximum value"
+  },
+  "home": {
+    "resultsFor": "Results for",
+    "productsFound": "{count} products found",
+    "nameAsc": "Name: A to Z",
+    "starsUp": "{rating}+ Stars"
+  },
+  "categories": {
+    "electronics": "Electronics",
+    "computers": "Computers & Laptops",
+    "phones": "Phones & Tablets",
+    "cameras": "Cameras & Photography",
+    "tv": "TV & Home Entertainment",
+    "audio": "Audio & Headphones",
+    "clothing": "Clothing",
+    "shoes": "Shoes & Footwear",
+    "jewelry": "Jewelry & Watches",
+    "bags": "Bags & Backpacks",
+    "home": "Home & Garden",
+    "kitchen": "Kitchen & Dining",
+    "furniture": "Furniture",
+    "lighting": "Lighting",
+    "sports": "Sports & Outdoors",
+    "fitness": "Fitness Equipment",
+    "cycling": "Cycling",
+    "camping": "Camping & Hiking",
+    "books": "Books",
+    "toys": "Toys & Games",
+    "beauty": "Beauty & Personal Care",
+    "automotive": "Automotive",
+    "pets": "Pet Supplies",
+    "office": "Office Supplies"
   },
   "product": {
     "addToCart": "Add to Cart",
@@ -54,18 +144,23 @@
     "newest": "Newest",
     "rating": "Rating",
     "clearFilters": "Clear Filters",
-    "noProducts": "No products found"
+    "noProducts": "No products found",
+    "onlyLeft": "Only {count} left"
   },
   "cart": {
     "yourCart": "Your Cart",
     "emptyCart": "Your cart is empty",
+    "addSomeItems": "Add some items to get started",
     "subtotal": "Subtotal",
     "shipping": "Shipping",
     "total": "Total",
     "checkout": "Proceed to Checkout",
     "continueShopping": "Continue Shopping",
     "removeItem": "Remove Item",
-    "updateQuantity": "Update Quantity"
+    "updateQuantity": "Update Quantity",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "removeProduct": "Remove product"
   },
   "checkout": {
     "shippingInfo": "Shipping Information",
@@ -78,11 +173,27 @@
     "phone": "Phone",
     "address": "Address",
     "city": "City",
-    "country": "Country",
+    "state": "State",
     "zipCode": "ZIP Code",
     "creditCard": "Credit Card",
     "paypal": "PayPal",
-    "cashOnDelivery": "Cash on Delivery"
+    "cashOnDelivery": "Cash on Delivery",
+    "thankYou": "Thank you for your purchase!",
+    "confirmationSentTo": "Confirmation sent to:",
+    "youWillPay": "You will pay",
+    "whenArrives": "when the order arrives",
+    "failedToPlaceOrder": "Failed to place order",
+    "pleaseTryAgain": "Please try again.",
+    "payOnlineSecurely": "Pay online securely",
+    "payWhenYouReceive": "Pay when you receive",
+    "cardNumber": "Card Number",
+    "expiryDate": "Expiry Date",
+    "cvv": "CVV",
+    "processingOrder": "Processing Order...",
+    "quantity": "Qty",
+    "free": "Free",
+    "tax": "Tax",
+    "codFee": "COD Fee"
   },
   "auth": {
     "welcomeBack": "Welcome Back",
@@ -93,7 +204,15 @@
     "forgotPassword": "Forgot password?",
     "resetPassword": "Reset Password",
     "sendResetLink": "Send Reset Link",
-    "rememberMe": "Remember me"
+    "rememberMe": "Remember me",
+    "signInToContinue": "Sign in to continue",
+    "email": "Email",
+    "password": "Password",
+    "enterYourEmail": "you@example.com",
+    "enterYourPassword": "Enter your password",
+    "signingIn": "Signing in...",
+    "invalidCredentials": "Invalid email or password",
+    "genericError": "An error occurred. Please try again."
   },
   "profile": {
     "myProfile": "My Profile",
@@ -102,7 +221,8 @@
     "myOrders": "My Orders",
     "orderHistory": "Order History",
     "orderDetails": "Order Details",
-    "noOrders": "No orders yet"
+    "noOrders": "No orders yet",
+    "comingSoon": "Profile page coming soon..."
   },
   "wishlist": {
     "myWishlist": "My Wishlist",
@@ -117,6 +237,31 @@
     "cancelled": "Cancelled",
     "trackOrder": "Track Order",
     "orderTotal": "Order Total"
+  },
+  "review": {
+    "anonymous": "Anonymous",
+    "verifiedPurchase": "Verified Purchase",
+    "edited": "(edited)",
+    "editReview": "Edit Review",
+    "noReviewsYet": "No reviews yet.",
+    "beFirstToReview": "Be the first to review",
+    "yourRating": "Your Rating",
+    "reviewTitleOptional": "Review Title (optional)",
+    "summarizeExperience": "Summarize your experience",
+    "yourReview": "Your Review",
+    "shareExperience": "Share your experience with this product...",
+    "characters": "{count}/1000 characters",
+    "selectRating": "Please select a rating",
+    "minLength": "Review must be at least 10 characters",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "submitReview": "Submit Review",
+    "failedToSubmit": "Failed to submit review",
+    "star": "star",
+    "rateStars": "Rate {rating} of {maxRating} stars"
+  },
+  "reviews": {
+    "comingSoon": "My reviews page coming soon..."
   },
   "footer": {
     "aboutUs": "About Us",

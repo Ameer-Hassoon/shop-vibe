@@ -26,6 +26,14 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
+    const idsParam = searchParams.get("ids");
+    if (idsParam) {
+      const ids = idsParam.split(",").map((id) => id.trim()).filter(Boolean);
+      if (ids.length > 0) {
+        where.id = { in: ids };
+      }
+    }
+
     if (search) {
       where.OR = [
         { name: { contains: search } },

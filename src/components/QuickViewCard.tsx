@@ -2,40 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Product } from "@/types";
 import { StarRating } from "./StarRating";
-
-const CATEGORY_NAMES: Record<string, string> = {
-  "electronics": "Electronics",
-  "computers & laptops": "Computers & Laptops",
-  "phones & tablets": "Phones & Tablets",
-  "cameras & photography": "Cameras & Photography",
-  "tv & home entertainment": "TV & Home Entertainment",
-  "audio & headphones": "Audio & Headphones",
-  "clothing": "Clothing",
-  "shoes & footwear": "Shoes & Footwear",
-  "jewelry & watches": "Jewelry & Watches",
-  "bags & backpacks": "Bags & Backpacks",
-  "home & garden": "Home & Garden",
-  "kitchen & dining": "Kitchen & Dining",
-  "furniture": "Furniture",
-  "lighting": "Lighting",
-  "sports & outdoors": "Sports & Outdoors",
-  "fitness equipment": "Fitness Equipment",
-  "cycling": "Cycling",
-  "camping & hiking": "Camping & Hiking",
-  "books": "Books",
-  "toys & games": "Toys & Games",
-  "beauty & personal care": "Beauty & Personal Care",
-  "automotive": "Automotive",
-  "pet supplies": "Pet Supplies",
-  "office supplies": "Office Supplies",
-};
-
-function translateCategory(category: string): string {
-  return CATEGORY_NAMES[category.toLowerCase()] || category;
-}
+import { Link } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { translateCategory } from "@/lib/categoryTranslations";
 
 interface QuickViewCardProps {
   product: Product;
@@ -59,6 +30,8 @@ export function QuickViewCard({
   const [rating, setRating] = useState(initialRating);
   const [reviewCount, setReviewCount] = useState(initialReviewCount);
   const [imageError, setImageError] = useState(false);
+  const locale = useLocale();
+  const t = useTranslations();
 
   useEffect(() => {
     setRating(initialRating);
@@ -143,7 +116,7 @@ export function QuickViewCard({
       <div className="relative h-48 bg-gray-50">
         {imageError ? (
           <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-            <span className="text-xs">No image</span>
+            <span className="text-xs">{t("common.noImage")}</span>
           </div>
         ) : (
           <Image
@@ -157,7 +130,7 @@ export function QuickViewCard({
         )}
         <div className="absolute top-2 left-2">
           <span className="px-2 py-1 bg-white/90 text-xs font-medium text-gray-700 rounded-md">
-            {translateCategory(product.category)}
+            {translateCategory(product.category, t)}
           </span>
         </div>
       </div>
@@ -165,6 +138,7 @@ export function QuickViewCard({
       <div className="p-4">
         <Link
           href={`/product/${product.id}`}
+          locale={locale}
           onClick={onClose}
           className="block"
         >
@@ -189,10 +163,14 @@ export function QuickViewCard({
             </p>
             {product.stock > 0 ? (
               <p className="text-xs text-green-600 font-medium">
-                {product.stock <= 5 ? `Only ${product.stock} left` : "In Stock"}
+                {product.stock <= 5
+                  ? t("product.onlyLeft", { count: product.stock })
+                  : t("product.inStock")}
               </p>
             ) : (
-              <p className="text-xs text-red-500 font-medium">Out of Stock</p>
+              <p className="text-xs text-red-500 font-medium">
+                {t("product.outOfStock")}
+              </p>
             )}
           </div>
         </div>

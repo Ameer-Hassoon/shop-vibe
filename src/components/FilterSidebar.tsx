@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useFilters, MAX_PRICE } from "@/store/filters";
 import { DualRangeSlider } from "./DualRangeSlider";
 import { StarRating } from "./StarRating";
+import { useTranslations } from "next-intl";
+import { translateCategory } from "@/lib/categoryTranslations";
 
 const CATEGORY_KEYS = [
   "cat.electronics",
@@ -32,35 +34,9 @@ const CATEGORY_KEYS = [
   "cat.office",
 ] as const;
 
-const CATEGORY_NAMES: Record<string, string> = {
-  "cat.electronics": "Electronics",
-  "cat.computers": "Computers & Laptops",
-  "cat.phones": "Phones & Tablets",
-  "cat.cameras": "Cameras & Photography",
-  "cat.tv": "TV & Home Entertainment",
-  "cat.audio": "Audio & Headphones",
-  "cat.clothing": "Clothing",
-  "cat.shoes": "Shoes & Footwear",
-  "cat.jewelry": "Jewelry & Watches",
-  "cat.bags": "Bags & Backpacks",
-  "cat.home": "Home & Garden",
-  "cat.kitchen": "Kitchen & Dining",
-  "cat.furniture": "Furniture",
-  "cat.lighting": "Lighting",
-  "cat.sports": "Sports & Outdoors",
-  "cat.fitness": "Fitness Equipment",
-  "cat.cycling": "Cycling",
-  "cat.camping": "Camping & Hiking",
-  "cat.books": "Books",
-  "cat.toys": "Toys & Games",
-  "cat.beauty": "Beauty & Personal Care",
-  "cat.automotive": "Automotive",
-  "cat.pets": "Pet Supplies",
-  "cat.office": "Office Supplies",
-};
-
 export function FilterSidebar() {
   const [mounted] = useState(() => typeof window !== "undefined");
+  const t = useTranslations();
 
   const {
     categories,
@@ -109,14 +85,14 @@ export function FilterSidebar() {
                 d="M4 6h16M4 10h16M4 14h16M4 18h16"
               />
             </svg>
-            Filters
+            {t("filters.filters")}
           </h2>
           {hasFilters && (
             <button
               onClick={reset}
               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
             >
-              Clear all
+              {t("filters.clearAll")}
             </button>
           )}
         </div>
@@ -128,7 +104,7 @@ export function FilterSidebar() {
               onClick={() => toggleCategory(catKey)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-left ${categories.includes(catKey) ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
             >
-              <span className="text-sm">{CATEGORY_NAMES[catKey]}</span>
+              <span className="text-sm">{translateCategory(catKey, t)}</span>
               {categories.includes(catKey) && (
                 <svg
                   className="w-4 h-4"
@@ -161,7 +137,7 @@ export function FilterSidebar() {
                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            Price Range
+            {t("filters.priceRange")}
           </h3>
           <DualRangeSlider
             min={minPrice}
@@ -186,7 +162,7 @@ export function FilterSidebar() {
                 d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
               />
             </svg>
-            Rating
+            {t("filters.rating")}
           </h3>
           <div className="space-y-2">
             {[4, 3, 2, 1].map((rating) => (
@@ -196,7 +172,7 @@ export function FilterSidebar() {
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${minRating === rating ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
               >
                 <StarRating rating={rating} size="sm" />
-                <span className="text-sm">& up</span>
+                <span className="text-sm">{t("filters.andUp")}</span>
               </button>
             ))}
           </div>
@@ -210,7 +186,9 @@ export function FilterSidebar() {
               onChange={(e) => setInStockOnly(e.target.checked)}
               className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
-            <span className="font-medium text-gray-900">In Stock Only</span>
+            <span className="font-medium text-gray-900">
+              {t("filters.inStockOnly")}
+            </span>
           </label>
         </div>
       </div>

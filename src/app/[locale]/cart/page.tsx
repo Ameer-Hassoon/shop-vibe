@@ -4,9 +4,11 @@ import Image from "next/image";
 import { useCartStore } from "@/store/cart";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 
 export default function CartPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
@@ -35,9 +37,10 @@ export default function CartPage() {
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-gray-900">{t('cart.emptyCart')}</h1>
-        <p className="text-gray-500 mt-2">Add some items to get started</p>
+        <p className="text-gray-500 mt-2">{t("cart.addSomeItems")}</p>
         <Link
           href="/"
+          locale={locale}
           className="inline-block mt-6 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
         >
           {t('cart.continueShopping')}
@@ -58,6 +61,7 @@ export default function CartPage() {
             <div key={item.id} className="p-6 flex gap-6">
               <Link
                 href={`/product/${item.product.id}`}
+                locale={locale}
                 className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity"
               >
                 <Image
@@ -76,6 +80,7 @@ export default function CartPage() {
               <div className="flex-1">
                 <Link
                   href={`/product/${item.product.id}`}
+                  locale={locale}
                   className="font-semibold text-gray-900 hover:text-indigo-600 transition-colors"
                 >
                   {item.product.name}
@@ -94,7 +99,7 @@ export default function CartPage() {
                       }}
                       disabled={item.quantity <= 1}
                       className="w-8 h-8 border border-gray-300 rounded hover:bg-gray-100 transition-colors flex items-center justify-center text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Decrease quantity"
+                      aria-label={t("cart.decreaseQuantity")}
                     >
                       -
                     </button>
@@ -106,6 +111,7 @@ export default function CartPage() {
                         updateQuantity(item.productId, item.quantity + 1)
                       }
                       className="w-8 h-8 border border-gray-300 rounded hover:bg-gray-100 transition-colors flex items-center justify-center text-gray-900"
+                      aria-label={t("cart.increaseQuantity")}
                     >
                       +
                     </button>
@@ -117,7 +123,7 @@ export default function CartPage() {
                     </span>
                     <button
                       onClick={() => removeFromCart(item.productId)}
-                      aria-label={`Remove ${item.product.name} from cart`}
+                      aria-label={t("cart.removeProduct")}
                       className="text-red-600 hover:text-red-800 transition-colors"
                     >
                       <svg
@@ -159,7 +165,7 @@ export default function CartPage() {
             </span>
           </div>
           <button
-            onClick={() => router.push("/checkout")}
+            onClick={() => router.push("/checkout", { locale })}
             className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
           >
             <svg
@@ -179,6 +185,7 @@ export default function CartPage() {
           </button>
           <Link
             href="/"
+            locale={locale}
             className="block text-center mt-4 text-gray-500 hover:text-indigo-600 transition-colors"
           >
             {t('cart.continueShopping')}

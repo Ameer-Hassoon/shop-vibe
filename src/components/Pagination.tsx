@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -11,6 +13,8 @@ export function Pagination({
   totalPages,
   onPageChange,
 }: PaginationProps) {
+  const t = useTranslations();
+
   return (
     <div className="flex items-center justify-center gap-2 mt-8">
       <button
@@ -18,7 +22,7 @@ export function Pagination({
         disabled={currentPage === 1}
         className="px-3 py-2 border rounded-lg disabled:opacity-50"
       >
-        Prev
+        {t("common.previous")}
       </button>
       {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
         let page = i + 1;
@@ -40,7 +44,7 @@ export function Pagination({
         disabled={currentPage >= Math.max(0, totalPages)}
         className="px-3 py-2 border rounded-lg disabled:opacity-50"
       >
-        Next
+        {t("common.next")}
       </button>
     </div>
   );

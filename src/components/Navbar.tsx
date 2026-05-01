@@ -1,45 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
+import { useLocale, useTranslations } from "next-intl";
 import { useCartStore } from "@/store/cart";
 import { useSearchHistory } from "@/store/searchHistory";
 import { useTheme } from "@/store/theme";
 import { Product } from "@/types";
 import LanguageSwitcher from "./LanguageSwitcher";
-
-const CATEGORY_NAMES: Record<string, string> = {
-  "electronics": "Electronics",
-  "computers & laptops": "Computers & Laptops",
-  "phones & tablets": "Phones & Tablets",
-  "cameras & photography": "Cameras & Photography",
-  "tv & home entertainment": "TV & Home Entertainment",
-  "audio & headphones": "Audio & Headphones",
-  "clothing": "Clothing",
-  "shoes & footwear": "Shoes & Footwear",
-  "jewelry & watches": "Jewelry & Watches",
-  "bags & backpacks": "Bags & Backpacks",
-  "home & garden": "Home & Garden",
-  "kitchen & dining": "Kitchen & Dining",
-  "furniture": "Furniture",
-  "lighting": "Lighting",
-  "sports & outdoors": "Sports & Outdoors",
-  "fitness equipment": "Fitness Equipment",
-  "cycling": "Cycling",
-  "camping & hiking": "Camping & Hiking",
-  "books": "Books",
-  "toys & games": "Toys & Games",
-  "beauty & personal care": "Beauty & Personal Care",
-  "automotive": "Automotive",
-  "pet supplies": "Pet Supplies",
-  "office supplies": "Office Supplies",
-};
-
-function translateCategory(category: string): string {
-  return CATEGORY_NAMES[category.toLowerCase()] || category;
-}
+import { translateCategory } from "@/lib/categoryTranslations";
 
 export default function Navbar() {
   const [search, setSearch] = useState("");
@@ -49,17 +20,22 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations();
   const { data: session } = useSession();
   const router = useRouter();
-  const pathname = usePathname();
+  const locale = useLocale();
   const totalItems = useCartStore((state) => 
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
-  const { searches, addSearch, removeSearch, clearHistory } = useSearchHistory();
+  const { searches, addSearch, clearHistory } = useSearchHistory();
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    setMounted(true);
+    const mountedTimer = window.setTimeout(() => {
+      setMounted(true);
+    }, 0);
+
+    return () => window.clearTimeout(mountedTimer);
   }, []);
 
   useEffect(() => {
@@ -109,20 +85,20 @@ export default function Navbar() {
     e.preventDefault();
     if (search.trim()) {
       addSearch(search);
-      router.push(`/?search=${encodeURIComponent(search)}`);
+      router.push(`/?search=${encodeURIComponent(search)}`, { locale });
       setShowSuggestions(false);
     }
   };
 
   const handleSuggestionClick = (productId: string) => {
-    router.push(`/product/${productId}`);
+    router.push(`/product/${productId}`, { locale });
     setSearch("");
     setShowSuggestions(false);
   };
 
   const handleHistoryClick = (query: string) => {
     setSearch(query);
-    router.push(`/?search=${encodeURIComponent(query)}`);
+    router.push(`/?search=${encodeURIComponent(query)}`, { locale });
     setShowSuggestions(false);
   };
 
@@ -132,10 +108,11 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <Link
             href="/"
+            locale={locale}
             className="text-2xl font-bold text-indigo-600"
             onClick={() => setSearch("")}
           >
-            Shop
+            {t("common.shop")}
           </Link>
 
           <div className="flex-1 max-w-2xl mx-4 relative" ref={searchRef}>
@@ -143,7 +120,7 @@ export default function Navbar() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search products..."
+                  placeholder={t("common.searchPlaceholder")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onFocus={() => {
@@ -179,7 +156,9 @@ export default function Navbar() {
             {mounted && showSuggestions && search.trim().length === 0 && searches.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 search-dropdown">
                 <div className="px-4 py-2">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent</span>
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    {t("navbar.recentSearches")}
+                  </span>
                 </div>
                 {searches.map((query, index) => (
                   <button
@@ -198,7 +177,7 @@ export default function Navbar() {
                     onClick={clearHistory}
                     className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
                   >
-                    Clear recent searches
+                    {t("navbar.clearRecentSearches")}
                   </button>
                 </div>
               </div>
@@ -226,7 +205,7 @@ export default function Navbar() {
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900 truncate">{product.name}</p>
-                          <p className="text-sm text-gray-500">{translateCategory(product.category)}</p>
+                          <p className="text-sm text-gray-500">{translateCategory(product.category, t)}</p>
                         </div>
                         <span className="font-bold text-gray-900">${product.price.toFixed(2)}</span>
                       </button>
@@ -234,14 +213,14 @@ export default function Navbar() {
                   </div>
                 )}
                 <button
-                  onClick={() => {
-                    addSearch(search);
-                    router.push(`/?search=${encodeURIComponent(search)}`);
-                    setShowSuggestions(false);
-                  }}
+                      onClick={() => {
+                        addSearch(search);
+                        router.push(`/?search=${encodeURIComponent(search)}`, { locale });
+                        setShowSuggestions(false);
+                      }}
                   className="w-full px-4 py-3.5 text-center font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                 >
-                  See all results for &quot;{search}&quot;
+                  {t("navbar.seeAllResultsFor", { search })}
                 </button>
               </div>
             )}
@@ -253,7 +232,7 @@ export default function Navbar() {
             <button
               onClick={toggleTheme}
               className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? t("navbar.switchToLightMode") : t("navbar.switchToDarkMode")}
             >
               {theme === "dark" ? (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,6 +248,7 @@ export default function Navbar() {
             {session && (
               <Link
                 href="/wishlist"
+                locale={locale}
                 className="relative p-2 text-gray-600 hover:text-indigo-600"
               >
                 <svg
@@ -288,6 +268,7 @@ export default function Navbar() {
             )}
             <Link
               href="/cart"
+              locale={locale}
               className="relative p-2 text-gray-600 hover:text-indigo-600"
             >
               <svg
@@ -345,7 +326,7 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 user-menu-dropdown">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">
-                        {session.user?.name || "User"}
+                        {session.user?.name || t("common.user")}
                       </p>
                       <p className="text-xs text-gray-500">
                         {session.user?.email}
@@ -353,12 +334,13 @@ export default function Navbar() {
                       {(session.user as { role?: string } | undefined)?.role ===
                         "ADMIN" && (
                         <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-indigo-100 text-indigo-700 rounded-full">
-                          Admin
+                          {t("common.admin")}
                         </span>
                       )}
                     </div>
                     <Link
                       href="/profile"
+                      locale={locale}
                       onClick={() => setShowUserMenu(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
                     >
@@ -375,10 +357,11 @@ export default function Navbar() {
                           d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                         />
                       </svg>
-                      My Profile
+                      {t("navbar.myProfile")}
                     </Link>
                     <Link
                       href="/reviews"
+                      locale={locale}
                       onClick={() => setShowUserMenu(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
                     >
@@ -395,10 +378,11 @@ export default function Navbar() {
                           d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
                         />
                       </svg>
-                      My Reviews
+                      {t("navbar.myReviews")}
                     </Link>
                     <Link
                       href="/orders"
+                      locale={locale}
                       onClick={() => setShowUserMenu(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
                     >
@@ -415,7 +399,7 @@ export default function Navbar() {
                           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                         />
                       </svg>
-                      Order History
+                      {t("navbar.orderHistory")}
                     </Link>
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button
@@ -438,7 +422,7 @@ export default function Navbar() {
                             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                           />
                         </svg>
-                        Sign Out
+                        {t("navbar.signOut")}
                       </button>
                     </div>
                   </div>
@@ -447,9 +431,10 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
+                locale={locale}
                 className="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50"
               >
-                Login
+                {t("common.login")}
               </Link>
             )}
           </div>

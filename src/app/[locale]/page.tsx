@@ -9,6 +9,7 @@ import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { Pagination } from "@/components/Pagination";
 import { useTranslations } from 'next-intl';
+import { translateCategory } from "@/lib/categoryTranslations";
 
 const ITEMS_PER_PAGE = 20;
 const MAX_PRICE = 1000;
@@ -69,7 +70,11 @@ function HomePageContent() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const mountedTimer = window.setTimeout(() => {
+      setMounted(true);
+    }, 0);
+
+    return () => window.clearTimeout(mountedTimer);
   }, []);
 
   useEffect(() => {
@@ -79,8 +84,11 @@ function HomePageContent() {
   }, [searchQuery, reset]);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    const loadingTimer = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+    }, 0);
+
     const categoryNames = categories.map(cat => CATEGORY_KEY_TO_NAME[cat] || cat);
     const encodedCategoryNames = categoryNames.map(cat => encodeURIComponent(cat));
     const categoryParam = encodedCategoryNames.length > 0 ? encodedCategoryNames.join(",") : "";
@@ -108,6 +116,10 @@ function HomePageContent() {
         setError(err instanceof Error ? err.message : String(err));
         setLoading(false);
       });
+
+    return () => {
+      window.clearTimeout(loadingTimer);
+    };
   }, [searchQuery, categories, inStockOnly, sortBy, refreshKey, currentPage, minPrice, maxPrice, minRating]);
 
   useEffect(() => {
@@ -175,11 +187,11 @@ function HomePageContent() {
               {searchQuery ? (
                 <>
                   <h1 className="text-2xl font-bold text-gray-900">
-                    Results for &quot;
+                    {t("home.resultsFor")} &quot;
                     <span className="text-indigo-600">{searchQuery}</span>&quot;
                   </h1>
                   <p className="text-gray-500 mt-1">
-                    {totalProducts} {t('product.noProducts').toLowerCase()}
+                    {t("home.productsFound", { count: totalProducts })}
                   </p>
                 </>
               ) : (
@@ -188,7 +200,7 @@ function HomePageContent() {
                     {t('nav.newArrivals')}
                   </h1>
                   <p className="text-gray-500 mt-1">
-                    {totalProducts} {t('product.noProducts').toLowerCase()}
+                    {t("home.productsFound", { count: totalProducts })}
                   </p>
                 </>
               )}
@@ -201,7 +213,7 @@ function HomePageContent() {
               <option value="newest">{t('product.newest')}</option>
               <option value="price-low">{t('product.priceAsc')}</option>
               <option value="price-high">{t('product.priceDesc')}</option>
-              <option value="name">Name: A to Z</option>
+              <option value="name">{t("home.nameAsc")}</option>
               <option value="rating">{t('product.rating')}</option>
             </select>
           </div>
@@ -213,7 +225,7 @@ function HomePageContent() {
                   key={cat}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium"
                 >
-                  {CATEGORY_KEY_TO_NAME[cat] || cat}
+                  {translateCategory(CATEGORY_KEY_TO_NAME[cat] || cat, t)}
                   <button
                     onClick={() => toggleCategory(cat)}
                     className="hover:bg-indigo-200 rounded-full p-0.5"
@@ -259,7 +271,7 @@ function HomePageContent() {
               )}
               {minRating > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
-                  {minRating}+ Stars
+                  {t("home.starsUp", { rating: minRating })}
                   <button
                     onClick={() => {
                       useFilters.getState().setMinRating(0);

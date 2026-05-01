@@ -1,4 +1,42 @@
 {
+  "cat": {
+    "electronics": "الإلكترونيات",
+    "computers": "أجهزة الكمبيوتر",
+    "phones": "الهواتف",
+    "cameras": "الكاميرات",
+    "tv": "التلفزيون",
+    "audio": "الصوت",
+    "clothing": "الملابس",
+    "shoes": "الأحذية",
+    "jewelry": "المجوهرات",
+    "bags": "الأحزمة",
+    "home": "المنزل",
+    "kitchen": "المطبخ",
+    "furniture": "الأثاث",
+    "lighting": "الإضاءة",
+    "sports": "الرياضة",
+    "fitness": "اللياقة",
+    "cycling": "الدراجات",
+    "camping": "التخييم",
+    "books": "الكتب",
+    "toys": "الألعاب",
+    "beauty": "الجمال",
+    "automotive": "السيارات",
+    "pets": "الحيوانات الأليفة",
+    "office": "المكتب"
+  },
+  "navbar": {
+    "switchToLightMode": "التبديل للوضع الفاتح",
+    "switchToDarkMode": "التبديل للوضع الداكن",
+    "recentSearches": "البحث الأخير",
+    "clearRecentSearches": "مسح البحث الأخير",
+    "seeAllResultsFor": "شاهد كل النتائج لـ",
+    "myProfile": "ملفي",
+    "myReviews": "مراجعاتي",
+    "orderHistory": "سجل الطلبات",
+    "signOut": "تسجيل الخروج",
+    "adminBadge": "مدير"
+  },
   "common": {
     "home": "الرئيسية",
     "shop": "المتجر",
@@ -13,6 +51,11 @@
     "search": "بحث",
     "searchPlaceholder": "البحث عن منتجات...",
     "loading": "جاري التحميل...",
+    "product": "منتج",
+    "user": "المستخدم",
+    "english": "الإنجليزية",
+    "arabic": "العربية",
+    "noImage": "لا توجد صورة",
     "error": "حدث خطأ",
     "retry": "إعادة المحاولة",
     "save": "حفظ",
@@ -25,13 +68,56 @@
     "next": "التالي",
     "previous": "السابق",
     "viewAll": "عرض الكل",
-    "readMore": "اقرأ المزيد"
+    "readMore": "اقرأ المزيد",
+    "comingSoon": "قريباً..."
   },
   "nav": {
     "categories": "الفئات",
     "newArrivals": "وصل حديثاً",
     "bestSellers": "الأكثر مبيعاً",
     "sale": "تخفيضات"
+  },
+  "filters": {
+    "filters": "الفلاتر",
+    "clearAll": "مسح الكل",
+    "priceRange": "نطاق السعر",
+    "rating": "التقييم",
+    "andUp": "وأعلى",
+    "inStockOnly": "المتوفر فقط",
+    "minimumValue": "الحد الأدنى",
+    "maximumValue": "الحد الأقصى"
+  },
+  "home": {
+    "resultsFor": "نتائج لـ",
+    "productsFound": "{count} منتج",
+    "nameAsc": "الاسم: أ-ي",
+    "starsUp": "{rating}+ نجوم"
+  },
+  "categories": {
+    "electronics": "الإلكترونيات",
+    "computers": "أجهزة الكمبيوتر",
+    "phones": "الهواتف",
+    "cameras": "الكاميرات",
+    "tv": "التلفزيون",
+    "audio": "الصوت",
+    "clothing": "الملابس",
+    "shoes": "الأحذية",
+    "jewelry": "المجوهرات",
+    "bags": "الأحزمة",
+    "home": "المنزل",
+    "kitchen": "المطبخ",
+    "furniture": "الأثاث",
+    "lighting": "الإضاءة",
+    "sports": "الرياضة",
+    "fitness": "اللياقة",
+    "cycling": "الدراجات",
+    "camping": "التخييم",
+    "books": "الكتب",
+    "toys": "الألعاب",
+    "beauty": "الجمال",
+    "automotive": "السيارات",
+    "pets": "الحيوانات الأليفة",
+    "office": "المكتب"
   },
   "product": {
     "addToCart": "أضف إلى السلة",
@@ -54,7 +140,8 @@
     "newest": "الأحدث",
     "rating": "التقييم",
     "clearFilters": "مسح الفلاتر",
-    "noProducts": "لا توجد منتجات"
+    "noProducts": "لا توجد منتجات",
+    "onlyLeft": "بقي {count} فقط"
   },
   "cart": {
     "yourCart": "سلة التسوق",
@@ -65,7 +152,15 @@
     "checkout": "إتمام الشراء",
     "continueShopping": "متابعة التسوق",
     "removeItem": "حذف المنتج",
-    "updateQuantity": "تحديث الكمية"
+    "updateQuantity": "تحديث الكمية",
+    "addSomeItems": "أضف بعض المنتجات إلى سلتك",
+    "decreaseQuantity": "إنقاص الكمية",
+    "increaseQuantity": "زيادة الكمية",
+    "removeProduct": "إزالة المنتج"
+  },
+  "admin": {
+    "createProductDesc": "إنشاء منتج جديد",
+    "manageOrdersDesc": "إدارة الطلبات"
   },
   "checkout": {
     "shippingInfo": "معلومات الشحن",
@@ -82,7 +177,46 @@
     "zipCode": "الرمز البريدي",
     "creditCard": "بطاقة ائتمان",
     "paypal": "PayPal",
-    "cashOnDelivery": "الدفع عند الاستلام"
+    "cashOnDelivery": "الدفع عند الاستلام",
+    "state": "الولاية",
+    "thankYou": "شكراً لطلبك!",
+    "confirmationSentTo": "تم إرسال التأكيد إلى",
+    "youWillPay": "ستدفع",
+    "whenArrives": "عند الوصول",
+    "failedToPlaceOrder": "فشل في تأكيد الطلب",
+    "pleaseTryAgain": "يرجى المحاولة مرة أخرى",
+    "payOnlineSecurely": "الدفع بأمان عبر الإنترنت",
+    "payWhenYouReceive": "الدفع عند الاستلام",
+    "cardNumber": "رقم البطاقة",
+    "expiryDate": "تاريخ الانتهاء",
+    "cvv": "CVV",
+    "processingOrder": "جاري معالجة الطلب",
+    "quantity": "الكمية",
+    "free": "مجاني",
+    "tax": "الضريبة",
+    "codFee": "رسوم الدفع عند الاستلام"
+  },
+  "review": {
+    "anonymous": "مجهول",
+    "verifiedPurchase": "شراء موثق",
+    "edited": "معدّل",
+    "editReview": "تعديل المراجعة",
+    "noReviewsYet": "لا توجد مراجعات بعد",
+    "beFirstToReview": "كن أول من يراجع",
+    "yourRating": "تقييمك",
+    "reviewTitleOptional": "عنوان المراجعة (اختياري)",
+    "summarizeExperience": "لخص تجربتك",
+    "yourReview": "مراجعتك",
+    "shareExperience": "شارك تجربتك",
+    "characters": "حرف",
+    "selectRating": "اختر التقييم",
+    "minLength": "الحد الأدنى {count} أحرف",
+    "saving": "جاري الحفظ",
+    "saveChanges": "حفظ التغييرات",
+    "submitReview": "إرسال المراجعة",
+    "failedToSubmit": "فشل في إرسال المراجعة",
+    "star": "نجمة",
+    "rateStars": "قيّم بـ {count} نجوم"
   },
   "auth": {
     "welcomeBack": "مرحباً بعودتك",
@@ -93,7 +227,15 @@
     "forgotPassword": "نسيت كلمة المرور؟",
     "resetPassword": "إعادة تعيين كلمة المرور",
     "sendResetLink": "إرسال رابط إعادة التعيين",
-    "rememberMe": "تذكرني"
+    "rememberMe": "تذكرني",
+    "signInToContinue": "سجل الدخول للمتابعة",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "enterYourEmail": "you@example.com",
+    "enterYourPassword": "أدخل كلمة المرور",
+    "signingIn": "جاري تسجيل الدخول...",
+    "invalidCredentials": "بريد إلكتروني أو كلمة مرور غير صحيحة",
+    "genericError": "حدث خطأ. يرجى المحاولة مرة أخرى."
   },
   "profile": {
     "myProfile": "ملفي الشخصي",
@@ -102,7 +244,11 @@
     "myOrders": "طلباتي",
     "orderHistory": "سجل الطلبات",
     "orderDetails": "تفاصيل الطلب",
-    "noOrders": "لا توجد طلبات بعد"
+    "noOrders": "لا توجد طلبات بعد",
+    "comingSoon": "صفحة الملف الشخصي قادمة قريباً..."
+  },
+  "reviews": {
+    "comingSoon": "صفحة المراجعات قادمة قريباً..."
   },
   "wishlist": {
     "myWishlist": "مفضلتي",

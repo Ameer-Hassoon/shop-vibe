@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useCartStore } from "@/store/cart";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 export default function CheckoutPage() {
@@ -68,11 +68,11 @@ export default function CheckoutPage() {
         clearCart();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to place order");
+        alert(data.error || t("checkout.failedToPlaceOrder"));
       }
     } catch (error) {
       console.error("Order failed:", error);
-      alert("Failed to place order. Please try again.");
+      alert(`${t("checkout.failedToPlaceOrder")}. ${t("checkout.pleaseTryAgain")}`);
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
         <h1 className="text-2xl font-bold text-gray-900">{t('cart.emptyCart')}</h1>
-        <p className="text-gray-500 mt-2">{t('cart.continueShopping')}</p>
+        <p className="text-gray-500 mt-2">{t("cart.addSomeItems")}</p>
         <Link
           href="/"
           className="text-indigo-600 hover:underline mt-4 inline-block"
@@ -116,10 +116,10 @@ export default function CheckoutPage() {
             {t('orders.orderPlaced')}!
           </h1>
           <p className="text-gray-500 mb-6">
-            Thank you for your purchase!
+            {t("checkout.thankYou")}
           </p>
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <p className="text-sm text-gray-500">Confirmation sent to:</p>
+            <p className="text-sm text-gray-500">{t("checkout.confirmationSentTo")}</p>
             {formData.email ? (
               <p className="font-medium">{formData.email}</p>
             ) : (
@@ -129,7 +129,8 @@ export default function CheckoutPage() {
           {paymentMethod === "cod" && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
               <p className="text-sm text-amber-800">
-                <span className="font-medium">{t('checkout.cashOnDelivery')}:</span> You will pay ${total.toFixed(2)} when the order arrives
+                <span className="font-medium">{t('checkout.cashOnDelivery')}:</span>{" "}
+                {t("checkout.youWillPay")} ${total.toFixed(2)} {t("checkout.whenArrives")}
               </p>
             </div>
           )}
@@ -226,7 +227,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('checkout.country')}
+                    {t('checkout.state')}
                   </label>
                   <input
                     type="text"
@@ -300,7 +301,7 @@ export default function CheckoutPage() {
                         {t('checkout.creditCard')}
                       </p>
                       <p className="text-sm text-gray-500">
-                        Pay online securely
+                        {t("checkout.payOnlineSecurely")}
                       </p>
                     </div>
                   </div>
@@ -344,7 +345,7 @@ export default function CheckoutPage() {
                         {t('checkout.cashOnDelivery')}
                       </p>
                       <p className="text-sm text-gray-500">
-                        Pay when you receive
+                        {t("checkout.payWhenYouReceive")}
                       </p>
                     </div>
                   </div>
@@ -355,7 +356,7 @@ export default function CheckoutPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Card Number
+                      {t("checkout.cardNumber")}
                     </label>
                     <input
                       type="text"
@@ -369,7 +370,7 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Expiry Date
+                        {t("checkout.expiryDate")}
                       </label>
                       <input
                         type="text"
@@ -382,7 +383,7 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        CVV
+                        {t("checkout.cvv")}
                       </label>
                       <input
                         type="text"
@@ -424,7 +425,7 @@ export default function CheckoutPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Processing Order...
+                  {t("checkout.processingOrder")}
                 </>
               ) : (
                 <>
@@ -471,7 +472,7 @@ export default function CheckoutPage() {
                       {item.product.name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Qty: {item.quantity}
+                      {t("checkout.quantity")}: {item.quantity}
                     </p>
                     <p className="text-sm font-semibold">
                       ${(item.product.price * item.quantity).toFixed(2)}
@@ -489,16 +490,16 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">{t('cart.shipping')}</span>
                 <span className="font-medium">
-                  {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
+                  {shipping === 0 ? t("checkout.free") : `$${shipping.toFixed(2)}`}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Tax</span>
+                <span className="text-gray-500">{t("checkout.tax")}</span>
                 <span className="font-medium">${tax.toFixed(2)}</span>
               </div>
               {codFee > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">COD Fee</span>
+                  <span className="text-gray-500">{t("checkout.codFee")}</span>
                   <span className="font-medium">${codFee.toFixed(2)}</span>
                 </div>
               )}

@@ -47,7 +47,6 @@ export const useWishlistStore = create<WishlistState>()(
         if (get().items.includes(productId)) {
           return;
         }
-        const previousItems = get().items;
         set((state) => ({
           items: [...state.items, productId],
         }));
@@ -57,6 +56,9 @@ export const useWishlistStore = create<WishlistState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ productId }),
           });
+          if (res.status === 401) {
+            return;
+          }
           if (!res.ok) {
             if (res.status === 409) {
               return;
@@ -66,14 +68,12 @@ export const useWishlistStore = create<WishlistState>()(
           }
         } catch (error) {
           console.error("Failed to add to wishlist:", error);
-          set({ items: previousItems });
         }
       },
       removeItem: async (productId) => {
         if (!get().items.includes(productId)) {
           return;
         }
-        const previousItems = get().items;
         set((state) => ({
           items: state.items.filter((id) => id !== productId),
         }));
@@ -83,6 +83,9 @@ export const useWishlistStore = create<WishlistState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ productId }),
           });
+          if (res.status === 401) {
+            return;
+          }
           if (!res.ok) {
             if (res.status === 404) {
               return;
@@ -92,7 +95,6 @@ export const useWishlistStore = create<WishlistState>()(
           }
         } catch (error) {
           console.error("Failed to remove from wishlist:", error);
-          set({ items: previousItems });
         }
       },
       toggleItem: async (productId) => {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale, useTranslations } from "next-intl";
 import { StarRating } from './StarRating';
 
 interface Review {
@@ -23,8 +24,11 @@ interface ReviewCardProps {
 }
 
 export function ReviewCard({ review, currentUserId, onEdit }: ReviewCardProps) {
+  const t = useTranslations();
+  const locale = useLocale();
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -40,11 +44,11 @@ export function ReviewCard({ review, currentUserId, onEdit }: ReviewCardProps) {
         <div>
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-900">
-              {review.user.name || 'Anonymous'}
+              {review.user.name || t("review.anonymous")}
             </span>
             {review.isVerified && (
               <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                Verified Purchase
+                {t("review.verifiedPurchase")}
               </span>
             )}
           </div>
@@ -52,7 +56,7 @@ export function ReviewCard({ review, currentUserId, onEdit }: ReviewCardProps) {
             <StarRating rating={review.rating} size="sm" />
             <span className="text-sm text-gray-500">{formatDate(review.createdAt)}</span>
             {isEdited && (
-              <span className="text-xs text-gray-400 italic">(edited)</span>
+              <span className="text-xs text-gray-400 italic">{t("review.edited")}</span>
             )}
           </div>
         </div>
@@ -61,7 +65,7 @@ export function ReviewCard({ review, currentUserId, onEdit }: ReviewCardProps) {
             onClick={() => onEdit(review)}
             className="text-sm font-medium px-4 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
           >
-            Edit Review
+            {t("review.editReview")}
           </button>
         )}
       </div>
