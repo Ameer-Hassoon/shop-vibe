@@ -15,7 +15,8 @@ interface OrderEmailData {
   zipCode: string;
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Created lazily so builds and local dev work without an API key; emails are skipped then.
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<boolean> {
   const { email, orderId, items, total, shippingAddress, city, state, zipCode } = data;
@@ -53,6 +54,11 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
       </p>
     </div>
   `.trim();
+
+  if (!resend) {
+    console.info('RESEND_API_KEY not set; skipping order confirmation email');
+    return false;
+  }
 
   try {
     await resend.emails.send({
