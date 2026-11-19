@@ -1,121 +1,89 @@
-# E-Commerce Shop
+# Souq: bilingual e-commerce storefront
 
-A full-featured e-commerce web application built with Next.js, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
+A full-stack online shop in **English and Arabic (RTL)** with a real checkout: server-side pricing,
+transactional orders with race-safe stock handling, coupons, reviews, a wishlist and an admin dashboard.
+Built as a portfolio project with an emphasis on correctness and security rather than just screens.
+
+<!-- screenshots -->
 
 ## Features
 
-- **Product Catalog**: Browse, search, and view product details
-- **Shopping Cart**: Add/remove items, update quantities, persist in localStorage
-- **User Authentication**: Login/register with NextAuth.js
-- **Admin Dashboard**: Create, edit, and delete products
-- **Role-Based Access**: Admin-only routes protected with middleware
-- **Responsive Design**: Mobile and desktop friendly
+- Product catalogue with search, category/price/rating filters, sorting and pagination
+- Cart, wishlist and a cash-on-delivery checkout (shipping, tax and COD fee breakdown)
+- Coupons: percentage, fixed amount, free shipping, minimum purchase, max discount, usage limits
+- Orders with a status lifecycle (`PENDING` to `DELIVERED`, or `CANCELLED` with stock restore)
+- Verified-purchase reviews with automatic rating recalculation
+- Admin area: orders, analytics, product management (role protected)
+- Email order confirmations (optional, via Resend)
+- English / Arabic with full RTL layout, light and dark themes
 
-## Tech Stack
+## Tech stack
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: NextAuth.js
-- **State Management**: Zustand
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Prisma 5 + SQLite · NextAuth v4 (credentials, JWT)
+· next-intl 4 · Zustand · Zod · Vitest
 
-## Getting Started
+## Architecture notes
 
-### Prerequisites
+- **Pricing module** (`src/lib/pricing.ts`): one pure function, `computeOrderTotals()`, is used by the
+  checkout page for the preview and by the API for the authoritative total. It works in integer cents to
+  avoid floating point drift. The server ignores any prices or totals sent by the client.
+- **Transactional orders** (`src/lib/orders.ts`): `createOrder()` runs in one database transaction. Stock
+  and coupon usage are claimed with conditional updates (`stock >= qty`, `usageCount < limit`), so concurrent
+  orders can neither oversell a product nor exceed a coupon limit, and a failed order changes nothing.
+- **Auth and roles** (`src/lib/auth.ts`): NextAuth credentials with bcrypt and JWT sessions. API routes use
+  `requireUser()` / `requireAdmin()`, which return the user or a ready 401/403 response. Orders are queried
+  scoped to the owner, so other users' order ids return 404. `src/proxy.ts` (Next 16's replacement for
+  middleware) redirects anonymous or non-admin visitors away from `/{locale}/admin`.
+- **Validation** (`src/lib/validation.ts`): Zod schemas for every write endpoint. Failures return
+  `{ error, code: "VALIDATION", fields }` with per-field messages.
+- **i18n / RTL**: `next-intl` with locale-prefixed routes (`/en`, `/ar`), message files in `messages/`,
+  and logical CSS properties (`ms-*`, `pe-*`, `text-start`) so layouts mirror automatically.
+- **Rate limiting**: in-memory limiter for login and registration. See `TRUST_PROXY` in `.env.example`.
 
-- Node.js 18+
-- PostgreSQL database
+## Getting started
 
-### Installation
-
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Set up environment variables:
+Requires Node.js 20+.
 
 ```bash
 cp .env.example .env
-# Edit .env with your database URL and secrets
+npm ci
+npm run db:push     # create the SQLite schema
+npm run db:seed     # admin user, coupons, demo products (safe to re-run)
+npm run dev         # http://localhost:3000
 ```
 
-3. Set up the database:
+**Demo admin login:** `admin@shop.com` / `admin12345` (set by `ADMIN_PASSWORD` in `.env`).
+**Demo coupons:** `WELCOME10` (10% off, max $50), `SAVE20` ($20 off orders of $100+), `FREESHIP` (free shipping).
 
-```bash
-npx prisma db push
-npm run db:seed
-```
+## Scripts
 
-4. Start the development server:
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` / `npm start` | Production build and server |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest (unit and integration tests) |
+| `npm run db:push` | Apply `prisma/schema.prisma` to the database |
+| `npm run db:seed` | Idempotent demo data |
+| `npm run db:generate` | Regenerate the Prisma client |
 
-```bash
-npm run dev
-```
+## Tests
 
-5. Open [http://localhost:3000](http://localhost:3000)
+`npm test` runs:
 
-## Default Admin Account
+- unit tests for the pricing module (shipping threshold, every coupon type, max discount, minimum purchase, rounding)
+- unit tests for the Zod schemas
+- integration tests for `createOrder()` against a separate SQLite database (`prisma/test.db`, created
+  automatically): invalid quantities, merged duplicates, out-of-stock with no partial change, coupon limits
+  (including under concurrency), and stored totals matching `computeOrderTotals()`
 
-This seed data is for local development only. In production, set `ADMIN_PASSWORD` in your environment to a strong password before running `npm run db:seed`.
+## API overview
 
-After seeding the database, you can login with:
-
-- **Email**: admin@shop.com
-- **Password**: (see `ADMIN_PASSWORD`, or generated random password in seed logs)
-
-## API Routes
-
-| Method | Endpoint           | Description            |
-| ------ | ------------------ | ---------------------- |
-| GET    | /api/products      | Get all products       |
-| POST   | /api/products      | Create product (admin) |
-| GET    | /api/products/[id] | Get single product     |
-| PUT    | /api/products/[id] | Update product (admin) |
-| DELETE | /api/products/[id] | Delete product (admin) |
-
-## Project Structure
-
-```
-├── prisma/
-│   ├── schema.prisma      # Database schema
-│   └── seed.ts            # Seed script
-├── src/
-│   ├── app/
-│   │   ├── admin/         # Admin dashboard
-│   │   ├── api/           # API routes
-│   │   ├── cart/          # Cart page
-│   │   ├── login/         # Login page
-│   │   ├── product/       # Product details
-│   │   ├── register/      # Registration page
-│   │   ├── layout.tsx     # Root layout
-│   │   └── page.tsx       # Home page
-│   ├── components/        # Reusable components
-│   ├── hooks/             # Custom hooks
-│   ├── lib/               # Utilities (Prisma client)
-│   ├── providers/         # React providers
-│   ├── store/             # Zustand stores
-│   └── types/             # TypeScript types
-├── middleware.ts          # Route protection
-└── package.json
-```
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run db:generate` - Generate Prisma client
-- `npm run db:push` - Push schema changes
-- `npm run db:seed` - Seed database with sample data
-
-## Deployment
-
-The app can be deployed to Vercel or any Node.js hosting platform. Make sure to:
-
-1. Set up a PostgreSQL database
-2. Configure environment variables
-3. Run `npm run build` before deployment
+| Endpoint | Notes |
+| --- | --- |
+| `POST /api/orders` | Create an order (auth). Errors: `VALIDATION`, `PRODUCT_NOT_FOUND`, `OUT_OF_STOCK`, `COUPON_INVALID` |
+| `GET /api/orders`, `GET /api/orders/[id]` | Own orders only (admins can read any) |
+| `GET /api/coupons?code=X&cartTotal=N` | Validate a coupon and preview the discount |
+| `/api/products`, `/api/products/[id]` | Public reads; admin-only writes |
+| `/api/products/[id]/reviews` | Verified-purchase reviews (create, edit, delete) |
+| `/api/admin/*` | Admin only: orders, order updates, analytics |

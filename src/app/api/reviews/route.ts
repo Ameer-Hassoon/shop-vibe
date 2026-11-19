@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,9 +12,15 @@ export async function GET(request: NextRequest) {
     if (Number.isNaN(limit) || limit < 1) limit = 20;
     limit = Math.min(limit, 50);
 
+    // Unapproved reviews are only visible to admins; everyone else sees approved ones.
+    const user = await getSessionUser();
     const approved = searchParams.get("approved");
-
-    const where = approved !== null ? { isApproved: approved === "true" } : {};
+    const where =
+      user?.role === "ADMIN"
+        ? approved !== null
+          ? { isApproved: approved === "true" }
+          : {}
+        : { isApproved: true };
 
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
@@ -31,17 +38,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       reviews,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
     console.error("Get all reviews error:", error);
     return NextResponse.json(
-      { error: "Failed to get reviews" },
+      { error: "Failed to get reviews", code: "INTERNAL" },
       { status: 500 },
     );
   }

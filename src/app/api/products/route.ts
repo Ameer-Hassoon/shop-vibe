@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAdmin } from "@/lib/auth";
+import { parseBody, productCreateSchema } from "@/lib/validation";
 
 const ITEMS_PER_PAGE = 20;
+const MAX_LIMIT = 100;
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (Number.isNaN(parsedPage) || parsedPage < 1) parsedPage = 1;
     if (Number.isNaN(parsedLimit) || parsedLimit < 1)
       parsedLimit = ITEMS_PER_PAGE;
-    const limit = Math.min(parsedLimit, 1000);
+    const limit = Math.min(parsedLimit, MAX_LIMIT);
     const page = parsedPage;
     const skip = (page - 1) * limit;
 
@@ -121,7 +122,10 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+          // Cart/wishlist lookups by id need fresh stock; browsing can be cached briefly.
+          "Cache-Control": idsParam
+            ? "private, no-store"
+            : "public, s-maxage=60, stale-while-revalidate=120",
         },
       },
     );
@@ -136,59 +140,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
 
-    if (!session || (session.user as { role?: string }).role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const parsed = await parseBody(request, productCreateSchema);
+    if (parsed.response) return parsed.response;
 
-    const body = await request.json();
-    const { name, description, price, image, category, stock } = body;
-
-    if (
-      !name ||
-      !description ||
-      price === undefined ||
-      !image ||
-      !category ||
-      stock === undefined
-    ) {
-      return NextResponse.json(
-        { error: "All fields required" },
-        { status: 400 },
-      );
-    }
-
-    const parsedPrice = parseFloat(price);
-    const parsedStock = parseInt(stock);
-    if (
-      isNaN(parsedPrice) ||
-      isNaN(parsedStock) ||
-      parsedPrice < 0 ||
-      parsedStock < 0
-    ) {
-      return NextResponse.json(
-        { error: "Invalid price or stock value" },
-        { status: 400 },
-      );
-    }
-
-    const product = await prisma.product.create({
-      data: {
-        name,
-        description,
-        price: parsedPrice,
-        image,
-        category,
-        stock: parsedStock,
-      },
-    });
+    const product = await prisma.product.create({ data: parsed.data });
 
     return NextResponse.json(product, { status: 201 });
   } catch (e) {
     console.error("Failed to create product:", e);
     return NextResponse.json(
-      { error: "Failed to create product" },
+      { error: "Failed to create product", code: "INTERNAL" },
       { status: 500 },
     );
   }

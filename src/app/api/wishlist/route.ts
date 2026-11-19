@@ -1,161 +1,95 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireUser } from "@/lib/auth";
+import { parseBody, productIdSchema } from "@/lib/validation";
+
+const productSelect = {
+  id: true,
+  name: true,
+  price: true,
+  image: true,
+  category: true,
+  stock: true,
+} as const;
+
+const internal = (error: string) =>
+  NextResponse.json({ error, code: "INTERNAL" }, { status: 500 });
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const wishlistItems = await prisma.wishlistItem.findMany({
-      where: { userId },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            category: true,
-            stock: true,
-          },
-        },
-      },
+      where: { userId: auth.user.id },
+      include: { product: { select: productSelect } },
       orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(wishlistItems, {
-      headers: {
-        'Cache-Control': 'private, no-store',
-      },
+      headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
     console.error("Get wishlist error:", error);
-    return NextResponse.json(
-      { error: "Failed to get wishlist" },
-      { status: 500 },
-    );
+    return internal("Failed to get wishlist");
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
+    const userId = auth.user.id;
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const parsed = await parseBody(request, productIdSchema);
+    if (parsed.response) return parsed.response;
+    const { productId } = parsed.data;
+
+    if (!(await prisma.product.findUnique({ where: { id: productId }, select: { id: true } }))) {
+      return NextResponse.json({ error: "Product not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
-    const userId = (session.user as { id?: string }).id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      const wishlistItem = await prisma.wishlistItem.create({
+        data: { userId, productId },
+        include: { product: { select: productSelect } },
+      });
+      return NextResponse.json(wishlistItem);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        return NextResponse.json(
+          { error: "Product already in wishlist", code: "ALREADY_EXISTS" },
+          { status: 409 },
+        );
+      }
+      throw e;
     }
-
-    const { productId } = await request.json();
-
-    if (!productId) {
-      return NextResponse.json(
-        { error: "Product ID is required" },
-        { status: 400 },
-      );
-    }
-
-    const existingItem = await prisma.wishlistItem.findUnique({
-      where: {
-        userId_productId: {
-          userId,
-          productId,
-        },
-      },
-    });
-
-    if (existingItem) {
-      return NextResponse.json(
-        { error: "Product already in wishlist" },
-        { status: 409 },
-      );
-    }
-
-    const wishlistItem = await prisma.wishlistItem.create({
-      data: {
-        userId,
-        productId,
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            category: true,
-            stock: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(wishlistItem);
   } catch (error) {
     console.error("Add to wishlist error:", error);
-    return NextResponse.json(
-      { error: "Failed to add to wishlist" },
-      { status: 500 },
-    );
+    return internal("Failed to add to wishlist");
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { productId } = await request.json();
-
-    if (!productId) {
-      return NextResponse.json(
-        { error: "Product ID is required" },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseBody(request, productIdSchema);
+    if (parsed.response) return parsed.response;
 
     const result = await prisma.wishlistItem.deleteMany({
-      where: {
-        userId,
-        productId,
-      },
+      where: { userId: auth.user.id, productId: parsed.data.productId },
     });
 
     if (result.count === 0) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Remove from wishlist error:", error);
-    return NextResponse.json(
-      { error: "Failed to remove from wishlist" },
-      { status: 500 },
-    );
+    return internal("Failed to remove from wishlist");
   }
 }

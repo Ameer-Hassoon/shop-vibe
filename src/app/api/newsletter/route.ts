@@ -1,31 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { newsletterSchema, parseBody } from "@/lib/validation";
+
+const internal = (error: string) =>
+  NextResponse.json({ error, code: "INTERNAL" }, { status: 500 });
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const parsed = await parseBody(request, newsletterSchema);
+    if (parsed.response) return parsed.response;
+    const { email } = parsed.data;
 
-    if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      return NextResponse.json(
-        { error: "Invalid email format" },
-        { status: 400 },
-      );
-    }
-
-    const existing = await prisma.newsletterSubscriber.findUnique({
-      where: { email: normalizedEmail },
-    });
+    const existing = await prisma.newsletterSubscriber.findUnique({ where: { email } });
 
     if (existing) {
       if (!existing.isActive) {
         await prisma.newsletterSubscriber.update({
-          where: { email: normalizedEmail },
+          where: { email },
           data: { isActive: true, subscribedAt: new Date() },
         });
         return NextResponse.json({ message: "Successfully subscribed" });
@@ -33,56 +24,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Already subscribed" });
     }
 
-    await prisma.newsletterSubscriber.create({
-      data: { email: normalizedEmail },
+    // upsert keeps two concurrent sign-ups from failing on the unique email
+    await prisma.newsletterSubscriber.upsert({
+      where: { email },
+      create: { email },
+      update: {},
     });
 
-    return NextResponse.json(
-      { message: "Successfully subscribed" },
-      { status: 201 },
-    );
+    return NextResponse.json({ message: "Successfully subscribed" }, { status: 201 });
   } catch (error) {
     console.error("Newsletter subscribe error:", error);
-    return NextResponse.json({ error: "Failed to subscribe" }, { status: 500 });
+    return internal("Failed to subscribe");
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const parsed = await parseBody(request, newsletterSchema);
+    if (parsed.response) return parsed.response;
+    const { email } = parsed.data;
 
-    if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      return NextResponse.json({ error: "Invalid email" }, { status: 400 });
-    }
-
-    const existing = await prisma.newsletterSubscriber.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (!existing) {
-      return NextResponse.json(
-        { error: "Subscriber not found" },
-        { status: 404 },
-      );
-    }
-
-    await prisma.newsletterSubscriber.update({
-      where: { email: normalizedEmail },
+    // Same answer whether or not the address was subscribed, so this endpoint cannot be
+    // used to find out who is on the list.
+    await prisma.newsletterSubscriber.updateMany({
+      where: { email },
       data: { isActive: false },
     });
 
     return NextResponse.json({ message: "Successfully unsubscribed" });
   } catch (error) {
     console.error("Newsletter unsubscribe error:", error);
-    return NextResponse.json(
-      { error: "Failed to unsubscribe" },
-      { status: 500 },
-    );
+    return internal("Failed to unsubscribe");
   }
 }

@@ -1,29 +1,32 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAdmin } from "@/lib/auth";
+
+// Cancelled orders never count as revenue or sales.
+const COUNTED = { status: { not: "CANCELLED" } } as const;
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if ((session.user as { role?: string }).role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const [
       totalRevenue,
+      recentRevenue,
       totalOrders,
       totalCustomers,
       recentOrders,
-      topProducts,
+      topSold,
       lowStockProducts,
     ] = await Promise.all([
-      prisma.order.aggregate({ _sum: { total: true } }),
+      prisma.order.aggregate({ where: COUNTED, _sum: { total: true } }),
+      prisma.order.aggregate({
+        where: { ...COUNTED, createdAt: { gte: thirtyDaysAgo } },
+        _sum: { total: true },
+      }),
       prisma.order.count(),
       prisma.user.count({ where: { role: "USER" } }),
       prisma.order.findMany({
@@ -34,14 +37,12 @@ export async function GET() {
           items: { include: { product: { select: { name: true } } } },
         },
       }),
-      prisma.product.findMany({
-        where: {
-          orderItems: { some: {} },
-        },
-        include: {
-          _count: { select: { orderItems: true } },
-        },
-        orderBy: { orderItems: { _count: "desc" } },
+      // units sold per product (sum of quantities, not number of order lines)
+      prisma.orderItem.groupBy({
+        by: ["productId"],
+        where: { order: COUNTED },
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: "desc" } },
         take: 10,
       }),
       prisma.product.findMany({
@@ -52,9 +53,14 @@ export async function GET() {
       }),
     ]);
 
-    const recentRevenue = await prisma.order.aggregate({
-      _sum: { total: true },
-      where: { createdAt: { gte: thirtyDaysAgo } },
+    const topProductRows = await prisma.product.findMany({
+      where: { id: { in: topSold.map((t) => t.productId) } },
+      select: { id: true, name: true, image: true, price: true, stock: true },
+    });
+    const byId = new Map(topProductRows.map((p) => [p.id, p]));
+    const topProducts = topSold.flatMap((t) => {
+      const p = byId.get(t.productId);
+      return p ? [{ ...p, totalSold: t._sum.quantity ?? 0 }] : [];
     });
 
     return NextResponse.json({
@@ -65,20 +71,13 @@ export async function GET() {
         recentRevenue: recentRevenue._sum.total || 0,
       },
       recentOrders,
-      topProducts: topProducts.map((p) => ({
-        id: p.id,
-        name: p.name,
-        image: p.image,
-        price: p.price,
-        stock: p.stock,
-        totalSold: p._count.orderItems,
-      })),
+      topProducts,
       lowStockProducts,
     });
   } catch (error) {
     console.error("Analytics error:", error);
     return NextResponse.json(
-      { error: "Failed to get analytics" },
+      { error: "Failed to get analytics", code: "INTERNAL" },
       { status: 500 },
     );
   }

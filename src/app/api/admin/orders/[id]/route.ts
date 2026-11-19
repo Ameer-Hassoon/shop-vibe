@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAdmin } from "@/lib/auth";
+import { adminOrderUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if ((session.user as { role?: string }).role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
 
     const { id } = await params;
 
@@ -42,14 +35,14 @@ export async function GET(
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ error: "Order not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     return NextResponse.json(order);
   } catch (error) {
     console.error("Admin order fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch order" },
+      { error: "Failed to fetch order", code: "INTERNAL" },
       { status: 500 },
     );
   }
@@ -60,20 +53,15 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if ((session.user as { role?: string }).role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
 
     const { id } = await params;
-    const body = await request.json();
-    const { status, trackingNumber, carrier, estimatedDelivery, restoreStock } =
-      body;
+    const parsed = await parseBody(request, adminOrderUpdateSchema);
+    if (parsed.response) return parsed.response;
+    const { status, trackingNumber, carrier, estimatedDelivery } = parsed.data;
+    // Cancelling returns the stock unless the admin explicitly opts out.
+    const restoreStock = parsed.data.restoreStock ?? true;
 
     const existingOrder = await prisma.order.findUnique({
       where: { id },
@@ -81,27 +69,31 @@ export async function PUT(
     });
 
     if (!existingOrder) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ error: "Order not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
-    const validStatuses = [
-      "PENDING",
-      "PROCESSING",
-      "CONFIRMED",
-      "SHIPPED",
-      "DELIVERED",
-      "CANCELLED",
-    ];
-
-    if (status && !validStatuses.includes(status)) {
+    if (existingOrder.status === "CANCELLED" && status && status !== "CANCELLED") {
       return NextResponse.json(
-        { error: "Invalid status" },
-        { status: 400 },
+        { error: "A cancelled order cannot be reopened", code: "INVALID_TRANSITION" },
+        { status: 409 },
       );
     }
 
+    const include = {
+      user: { select: { id: true, name: true, email: true } },
+      items: { include: { product: true } },
+      coupon: true,
+    };
+
     if (status === "CANCELLED" && existingOrder.status !== "CANCELLED") {
       const order = await prisma.$transaction(async (tx) => {
+        // Conditional update: of two concurrent cancels only one wins, so stock is
+        // restored at most once.
+        const claimed = await tx.order.updateMany({
+          where: { id, status: { not: "CANCELLED" } },
+          data: { status: "CANCELLED" },
+        });
+        if (claimed.count === 0) return null;
         if (restoreStock) {
           for (const item of existingOrder.items) {
             await tx.product.update({
@@ -110,38 +102,20 @@ export async function PUT(
             });
           }
         }
-        return tx.order.update({
-          where: { id },
-          data: { status: "CANCELLED" },
-          include: {
-            user: { select: { id: true, name: true, email: true } },
-            items: { include: { product: true } },
-          },
-        });
+        return tx.order.findUniqueOrThrow({ where: { id }, include });
       });
+
+      if (!order) {
+        return NextResponse.json(
+          { error: "Order is already cancelled", code: "INVALID_TRANSITION" },
+          { status: 409 },
+        );
+      }
 
       return NextResponse.json({
         order,
-        message: restoreStock
-          ? "Order cancelled and stock restored"
-          : "Order cancelled",
+        message: restoreStock ? "Order cancelled and stock restored" : "Order cancelled",
       });
-    }
-
-    let validatedEstimatedDelivery: Date | null = null;
-    if (estimatedDelivery !== undefined) {
-      if (estimatedDelivery === null) {
-        validatedEstimatedDelivery = null;
-      } else {
-        const ts = Date.parse(estimatedDelivery);
-        if (isNaN(ts)) {
-          return NextResponse.json(
-            { error: "Invalid estimated delivery date" },
-            { status: 400 },
-          );
-        }
-        validatedEstimatedDelivery = new Date(ts);
-      }
     }
 
     const order = await prisma.order.update({
@@ -151,23 +125,17 @@ export async function PUT(
         ...(trackingNumber !== undefined && { trackingNumber }),
         ...(carrier !== undefined && { carrier }),
         ...(estimatedDelivery !== undefined && {
-          estimatedDelivery: validatedEstimatedDelivery,
+          estimatedDelivery: estimatedDelivery === null ? null : new Date(estimatedDelivery),
         }),
       },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        items: {
-          include: { product: true },
-        },
-        coupon: true,
-      },
+      include,
     });
 
     return NextResponse.json({ order, message: "Order updated successfully" });
   } catch (error) {
     console.error("Admin order update error:", error);
     return NextResponse.json(
-      { error: "Failed to update order" },
+      { error: "Failed to update order", code: "INTERNAL" },
       { status: 500 },
     );
   }

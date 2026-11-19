@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAdmin } from "@/lib/auth";
+import { ORDER_STATUSES } from "@/lib/validation";
 
 const ITEMS_PER_PAGE = 20;
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if ((session.user as { role?: string }).role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
 
     const searchParams = request.nextUrl.searchParams;
     let page = parseInt(searchParams.get("page") || "1");
@@ -39,15 +32,16 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
-    if (status && status !== "ALL") {
+    if (status && (ORDER_STATUSES as readonly string[]).includes(status)) {
       where.status = status;
     }
 
     if (search) {
+      const term = search.trim().slice(0, 100);
       where.OR = [
-        { id: { contains: search } },
-        { user: { email: { contains: search } } },
-        { user: { name: { contains: search } } },
+        { id: { contains: term } },
+        { user: { email: { contains: term } } },
+        { user: { name: { contains: term } } },
       ];
     }
 
@@ -125,7 +119,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Admin orders fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch orders" },
+      { error: "Failed to fetch orders", code: "INTERNAL" },
       { status: 500 },
     );
   }

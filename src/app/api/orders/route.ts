@@ -1,73 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireUser } from "@/lib/auth";
 import { sendOrderConfirmationEmail } from "@/lib/email";
-
-type OrderItemWithProduct = {
-  id: string;
-  productId: string;
-  quantity: number;
-  price: number;
-};
-
-async function linkViewsToOrderItems(
-  userId: string,
-  orderItems: OrderItemWithProduct[],
-) {
-  if (!userId || orderItems.length === 0) return;
-
-  const productIds = orderItems.map((item) => item.productId);
-  const productIdToOrderItemId = new Map(
-    orderItems.map((item) => [item.productId, item.id]),
-  );
-
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const unlinkedViews = await prisma.productView.findMany({
-    where: {
-      userId,
-      productId: { in: productIds },
-      orderItemId: null,
-      createdAt: { gte: sevenDaysAgo },
-    },
-  });
-
-  for (const view of unlinkedViews) {
-    const orderItemId = productIdToOrderItemId.get(view.productId);
-    if (orderItemId) {
-      await prisma.productView.update({
-        where: { id: view.id },
-        data: { orderItemId },
-      });
-    }
-  }
-}
+import { createOrder, OrderError } from "@/lib/orders";
+import { createOrderSchema, parseBody, validationResponse } from "@/lib/validation";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const orders = await prisma.order.findMany({
-      where: { userId },
-      include: { items: { include: { product: true } } },
+      where: { userId: auth.user.id },
+      include: { items: { include: { product: true } }, coupon: true },
       orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(orders);
-  } catch {
+  } catch (error) {
+    console.error("Get orders error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch orders" },
+      { error: "Failed to fetch orders", code: "INTERNAL" },
       { status: 500 },
     );
   }
@@ -75,155 +28,55 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userEmail = session.user.email;
-
-    const body = await request.json();
-    const { items, shippingAddress, city, state, zipCode } = body;
-
-    if (!items || items.length === 0) {
-      return NextResponse.json({ error: "No items in order" }, { status: 400 });
-    }
-
-    class NotFoundError extends Error {
-      constructor(productId: string) {
-        super(`Product not found: ${productId}`);
-        this.name = "NotFoundError";
-      }
-    }
-    type ProductForError = { id: string; name: string; stock: number };
-
-    class InsufficientStockError extends Error {
-      product: ProductForError;
-      constructor(product: ProductForError) {
-        super(
-          `Insufficient stock for ${product.name}. Only ${product.stock} available.`,
-        );
-        this.name = "InsufficientStockError";
-        this.product = product;
-      }
-    }
+    // Client-sent prices/totals are not part of the schema and are ignored.
+    const parsed = await parseBody(request, createOrderSchema);
+    if (parsed.response) return parsed.response;
 
     let order;
     try {
-      order = await prisma.$transaction(async (tx) => {
-        // Fetch all products for authoritative price/validation
-        const productIds = items.map(
-          (item: { productId: string }) => item.productId,
-        );
-        const products = await tx.product.findMany({
-          where: { id: { in: productIds } },
-        });
-        const productMap = new Map(products.map((p) => [p.id, p]));
-
-        let computedTotal = 0;
-        const orderItems = items.map(
-          (item: { productId: string; quantity: number }) => {
-            const product = productMap.get(item.productId);
-            if (!product) throw new NotFoundError(item.productId);
-            computedTotal += product.price * item.quantity;
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              price: product.price,
-            };
-          },
-        );
-
-        for (const item of items) {
-          // Try to decrement stock only if enough is available
-          const updated = await tx.product.updateMany({
-            where: { id: item.productId, stock: { gte: item.quantity } },
-            data: { stock: { decrement: item.quantity } },
-          });
-          if (updated.count === 0) {
-            // Check if product exists
-            const product = await tx.product.findUnique({
-              where: { id: item.productId },
-            });
-            if (!product) {
-              throw new NotFoundError(item.productId);
-            }
-            throw new InsufficientStockError(product);
-          }
+      order = await createOrder(auth.user.id, parsed.data);
+    } catch (err) {
+      if (err instanceof OrderError) {
+        if (err.code === "VALIDATION") {
+          return validationResponse(err.fields ?? {}, err.message);
         }
-
-        return tx.order.create({
-          data: {
-            userId,
-            total: computedTotal,
-            shippingAddress,
-            city,
-            state,
-            zipCode,
-            status: "CONFIRMED",
-            items: {
-              create: orderItems,
-            },
-          },
-          include: { items: { include: { product: true } } },
-        });
-      });
-    } catch (err: unknown) {
-      if (err instanceof NotFoundError) {
-        return NextResponse.json(
-          { error: "Product not found" },
-          { status: 400 },
-        );
-      }
-      if (err instanceof InsufficientStockError) {
-        return NextResponse.json(
-          {
-            error: `Insufficient stock for ${err.product.name}. Only ${err.product.stock} available.`,
-          },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
       }
       throw err;
     }
 
-    if (userEmail) {
+    if (auth.user.email) {
       sendOrderConfirmationEmail({
-        email: userEmail,
+        email: auth.user.email,
         orderId: order.id,
         items: order.items.map((item) => ({
           name: item.product.name,
           quantity: item.quantity,
           price: item.price,
         })),
+        subtotal: order.subtotal,
+        discount: order.discountAmount,
+        shippingFee: order.shippingFee,
+        tax: order.tax,
+        codFee: order.codFee,
         total: order.total,
         shippingAddress: order.shippingAddress,
         city: order.city,
         state: order.state,
         zipCode: order.zipCode,
       }).catch((err) => {
-        console.error(
-          `Failed to send order confirmation for order ${order.id}:`,
-          err,
-        );
+        console.error(`Failed to send order confirmation for order ${order.id}:`, err);
       });
     }
 
-    try {
-      await linkViewsToOrderItems(userId, order.items);
-    } catch (error) {
-      console.error("Failed to link views to order items:", error);
-    }
-
     return NextResponse.json(order, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("Create order error:", error);
     return NextResponse.json(
-      { error: "Failed to create order" },
+      { error: "Failed to create order", code: "INTERNAL" },
       { status: 500 },
     );
   }

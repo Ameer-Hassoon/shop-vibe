@@ -1,57 +1,42 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const history = await prisma.searchHistory.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
+      where: { userId: auth.user.id },
+      orderBy: { createdAt: "desc" },
       take: 10,
-      distinct: ['query'],
+      distinct: ["query"],
     });
 
-    return NextResponse.json(history);
+    return NextResponse.json(history, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    console.error('Get search history error:', error);
-    return NextResponse.json({ error: 'Failed to get search history' }, { status: 500 });
+    console.error("Get search history error:", error);
+    return NextResponse.json(
+      { error: "Failed to get search history", code: "INTERNAL" },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE() {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
-    const userId = (session.user as { id?: string }).id;
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await prisma.searchHistory.deleteMany({
-      where: { userId },
-    });
+    await prisma.searchHistory.deleteMany({ where: { userId: auth.user.id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Clear search history error:', error);
-    return NextResponse.json({ error: 'Failed to clear search history' }, { status: 500 });
+    console.error("Clear search history error:", error);
+    return NextResponse.json(
+      { error: "Failed to clear search history", code: "INTERNAL" },
+      { status: 500 },
+    );
   }
 }

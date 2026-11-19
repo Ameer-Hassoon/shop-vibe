@@ -1,128 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { Prisma } from "@prisma/client";
+import { requireUser } from "@/lib/auth";
+
+// Admins update orders through PUT /api/admin/orders/[id] (status transitions, stock restore).
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
     const { id } = await params;
+    const isAdmin = auth.user.role === "ADMIN";
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const order = await prisma.order.findUnique({
-      where: { id },
+    // Scoping the query by owner means another user's order is indistinguishable from a
+    // missing one (404, not 403), so order ids cannot be probed.
+    const order = await prisma.order.findFirst({
+      where: isAdmin ? { id } : { id, userId: auth.user.id },
       include: {
         items: {
           include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                image: true,
-                price: true,
-              },
-            },
+            product: { select: { id: true, name: true, image: true, price: true } },
           },
         },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        coupon: true,
+        user: { select: { id: true, name: true, email: true } },
       },
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    if (
-      order.userId !== userId &&
-      (session.user as { role?: string }).role !== "ADMIN"
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Order not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
     return NextResponse.json(order);
   } catch (error) {
     console.error("Get order error:", error);
-    return NextResponse.json({ error: "Failed to get order" }, { status: 500 });
-  }
-}
-
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if ((session.user as { role?: string }).role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const { id } = await params;
-    const { status, trackingNumber, carrier, estimatedDelivery } =
-      await request.json();
-
-    const validStatuses = [
-      "PENDING",
-      "PROCESSING",
-      "SHIPPED",
-      "DELIVERED",
-      "CANCELLED",
-      "REFUNDED",
-    ];
-    if (status && !validStatuses.includes(status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
-
-    try {
-      const order = await prisma.order.update({
-        where: { id },
-        data: {
-          ...(status && { status }),
-          ...(trackingNumber !== undefined && { trackingNumber }),
-          ...(carrier !== undefined && { carrier }),
-          ...(estimatedDelivery != null && {
-            estimatedDelivery: new Date(estimatedDelivery),
-          }),
-        },
-      });
-
-      return NextResponse.json(order);
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2025"
-      ) {
-        return NextResponse.json({ error: "Order not found" }, { status: 404 });
-      }
-      throw error;
-    }
-  } catch (error) {
-    console.error("Update order error:", error);
     return NextResponse.json(
-      { error: "Failed to update order" },
+      { error: "Failed to get order", code: "INTERNAL" },
       { status: 500 },
     );
   }

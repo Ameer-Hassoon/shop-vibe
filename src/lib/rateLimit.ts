@@ -1,70 +1,62 @@
-import crypto from "crypto";
-
 export type RateLimitRecord = { count: number; timestamp: number };
+
+const SHARED_BUCKET = "untrusted-proxy";
+const MAX_KEY_LENGTH = 64;
+let warnedNoIp = false;
+
+function warnOnce(message: string) {
+  if (warnedNoIp) return;
+  warnedNoIp = true;
+  console.warn(message);
+}
+
+function readHeader(request: Request, name: string): string | undefined {
+  const headers = request.headers as unknown;
+  if (headers && typeof (headers as Headers).get === "function") {
+    return (headers as Headers).get(name) ?? undefined;
+  }
+  // NextAuth hands `authorize()` a plain object, not a Request.
+  if (headers && typeof headers === "object") {
+    const value = (headers as Record<string, string | string[] | undefined>)[name];
+    return Array.isArray(value) ? value[0] : value;
+  }
+  return undefined;
+}
 
 /**
  * Returns a per-request identifier that can be used for rate limiting.
  *
- * If TRUST_PROXY is enabled, we attempt to use X-Forwarded-For / X-Real-IP.
- * If those headers are missing (or TRUST_PROXY is not enabled), we return a
- * deterministic fallback so all untrusted requests share a stricter bucket.
+ * Only when TRUST_PROXY=true (the app sits behind exactly one reverse proxy that appends to
+ * X-Forwarded-For) do we read the client IP from headers. We take the LAST entry of
+ * X-Forwarded-For, which is the one our proxy added; earlier entries are client-controlled
+ * and trivially spoofable. Otherwise (or if no header is present) all requests share one
+ * bucket, because Next.js route handlers expose no socket address.
  */
 export function getClientIpFromRequest(request: Request): string {
-  const trustProxy = process.env.TRUST_PROXY === "true";
-
-  const getFirst = (value: string | null | undefined) => {
-    if (!value) return undefined;
-    return value.split(",")[0].trim();
-  };
+  const trustProxy = ["true", "1"].includes(
+    (process.env.TRUST_PROXY ?? "").toLowerCase(),
+  );
 
   if (trustProxy) {
-    let forwarded: string | undefined;
-    let realIp: string | undefined;
+    const forwarded = readHeader(request, "x-forwarded-for")
+      ?.split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .pop();
+    const realIp = readHeader(request, "x-real-ip")?.trim();
+    const ip = forwarded || realIp;
+    if (ip) return ip.slice(0, MAX_KEY_LENGTH);
 
-    if (typeof request.headers.get === "function") {
-      forwarded = getFirst(request.headers.get("x-forwarded-for"));
-      realIp = getFirst(request.headers.get("x-real-ip"));
-    } else if (request.headers && typeof request.headers === "object") {
-      const headers = request.headers as unknown as Record<
-        string,
-        string | string[] | undefined
-      >;
-      const forwardedValue = headers["x-forwarded-for"];
-      const realIpValue = headers["x-real-ip"];
-      if (Array.isArray(forwardedValue)) {
-        forwarded = getFirst(forwardedValue[0]);
-      } else {
-        forwarded = getFirst(forwardedValue);
-      }
-      if (Array.isArray(realIpValue)) {
-        realIp = getFirst(realIpValue[0]);
-      } else {
-        realIp = getFirst(realIpValue);
-      }
-    }
-
-    if (forwarded || realIp) {
-      return (forwarded || realIp)!;
-    }
-
-    console.warn(
+    warnOnce(
       "Rate limit: TRUST_PROXY enabled but no forwarded/real IP headers found. Using shared bucket.",
     );
-    return "untrusted-proxy";
+    return SHARED_BUCKET;
   }
 
-  const req = request as Request & { socket?: { remoteAddress?: string } };
-  let socketIp = req.socket?.remoteAddress;
-
-  if (socketIp) {
-    if (socketIp.startsWith("::ffff:")) {
-      socketIp = socketIp.substring(7);
-    }
-    return socketIp;
-  }
-
-  console.warn("Rate limit: No socket address available. Using shared bucket.");
-  return "untrusted-proxy";
+  warnOnce(
+    "Rate limit: TRUST_PROXY is not enabled; all clients share one rate-limit bucket.",
+  );
+  return SHARED_BUCKET;
 }
 
 export function createInMemoryRateLimiter({
@@ -117,6 +109,11 @@ export function createInMemoryRateLimiter({
 
       record.count += 1;
       return record.count;
+    },
+
+    /** Clears the counter, e.g. after a successful login. */
+    reset(ip: string) {
+      map.delete(ip);
     },
 
     /**

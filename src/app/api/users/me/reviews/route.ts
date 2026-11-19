@@ -1,27 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID not found" },
-        { status: 400 }
-      );
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
+    const userId = auth.user.id;
 
     const searchParams = request.nextUrl.searchParams;
     let page = parseInt(searchParams.get("page") || "1", 10);
@@ -63,7 +48,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Get user reviews error:", error);
     return NextResponse.json(
-      { error: "Failed to get reviews" },
+      { error: "Failed to get reviews", code: "INTERNAL" },
       { status: 500 }
     );
   }
