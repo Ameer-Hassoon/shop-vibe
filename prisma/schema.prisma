@@ -3,8 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled connection for the app (on Neon: the "-pooler" host); DIRECT_URL is used by migrations.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -191,4 +193,14 @@ model NewsletterSubscriber {
   subscribedAt DateTime @default(now())
   
   @@index([email])
+}
+
+// Rate-limit counters, kept in the database so every serverless instance shares them.
+// `key` is a SHA-256 hash, so client IPs and emails are never stored in plain text.
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+
+  @@index([windowStart])
 }

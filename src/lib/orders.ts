@@ -83,8 +83,8 @@ function mergeItems(items: CreateOrderInput["items"]) {
 }
 
 /**
- * Runs `fn` and retries it when SQLite reports write contention (P2034). The failed
- * transaction has already rolled back, so retrying is safe.
+ * Runs `fn` and retries it when the database reports a write conflict or deadlock (P2034).
+ * The failed transaction has already rolled back, so retrying is safe.
  */
 async function withWriteRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise<T> {
   for (let attempt = 1; ; attempt++) {
@@ -97,6 +97,28 @@ async function withWriteRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise
       await new Promise((r) => setTimeout(r, 25 * attempt));
     }
   }
+}
+
+const HIDDEN = "••••";
+
+/**
+ * Returns a copy of an order with the customer's personal details masked. Used for the public
+ * read-only demo admin, which must not expose other visitors' names, emails or addresses.
+ */
+export function hideCustomerDetails<T extends object>(order: T): T {
+  const copy = { ...order } as Record<string, unknown>;
+  for (const field of ["phone", "shippingAddress", "zipCode", "trackingNumber"]) {
+    if (typeof copy[field] === "string" && copy[field]) copy[field] = HIDDEN;
+  }
+  const user = copy.user as { name?: string | null; email?: string | null } | null | undefined;
+  if (user) {
+    copy.user = {
+      ...user,
+      name: user.name ? `${user.name[0]}${HIDDEN}` : user.name,
+      email: user.email ? `${user.email[0]}${HIDDEN}@${HIDDEN}` : user.email,
+    };
+  }
+  return copy as T;
 }
 
 const orderInclude = {

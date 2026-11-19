@@ -164,7 +164,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (!existing || existing.productId !== productId) {
       return error("Review not found", "NOT_FOUND", 404);
     }
-    if (existing.userId !== auth.user.id && auth.user.role !== "ADMIN") {
+    if (existing.userId !== auth.user.id && (auth.user.role !== "ADMIN" || auth.user.readOnly)) {
       return error("You can only delete your own reviews", "FORBIDDEN", 403);
     }
 

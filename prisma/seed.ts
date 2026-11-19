@@ -261,6 +261,26 @@ async function seedAdmin() {
   console.log("Created admin:", email);
 }
 
+/**
+ * The public demo admin (see DEMO_ADMIN_EMAIL in .env.example): an ADMIN account that the app
+ * treats as read-only, so its credentials can be shared on the live site and in the README.
+ */
+async function seedDemoAdmin() {
+  const email = process.env.DEMO_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.DEMO_ADMIN_PASSWORD;
+  if (!email || !password) {
+    console.log("DEMO_ADMIN_EMAIL / DEMO_ADMIN_PASSWORD not set; skipping demo admin");
+    return;
+  }
+  const hashed = await hash(password, 10);
+  await prisma.user.upsert({
+    where: { email },
+    update: { password: hashed, role: "ADMIN" },
+    create: { email, name: "Demo Admin", password: hashed, role: "ADMIN" },
+  });
+  console.log("Upserted demo admin:", email);
+}
+
 async function seedCoupons() {
   const now = new Date();
   const validUntil = new Date(now);
@@ -309,6 +329,7 @@ async function backfillOrders() {
 async function main() {
   console.log("Seeding database...");
   await seedAdmin();
+  await seedDemoAdmin();
   await seedCoupons();
   await seedProducts();
   await backfillOrders();

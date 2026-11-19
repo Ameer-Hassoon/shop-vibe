@@ -13,7 +13,8 @@ export async function GET(
     if (auth.response) return auth.response;
 
     const { id } = await params;
-    const isAdmin = auth.user.role === "ADMIN";
+    // The read-only demo admin is treated like a shopper here: it sees its own orders only.
+    const isAdmin = auth.user.role === "ADMIN" && !auth.user.readOnly;
 
     // Scoping the query by owner means another user's order is indistinguishable from a
     // missing one (404, not 403), so order ids cannot be probed.

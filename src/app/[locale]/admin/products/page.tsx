@@ -98,13 +98,16 @@ function ProductsContent() {
     setDeleteError(null);
     try {
       const res = await fetch(`/api/products/${target.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.code === "DEMO_READ_ONLY" ? t("readOnlyDesc") : "");
+      }
       setNotice(t("deleteSuccess", { name: target.name }));
       setTarget(null);
       if (data && data.products.length === 1 && page > 1) setPage(page - 1);
       else reload();
-    } catch {
-      setDeleteError(t("deleteFailed"));
+    } catch (e) {
+      setDeleteError((e as Error).message || t("deleteFailed"));
     } finally {
       setDeleting(false);
     }

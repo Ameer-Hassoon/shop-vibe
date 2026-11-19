@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { isOrderStatus } from "@/lib/orderStatus";
+import { hideCustomerDetails } from "@/lib/orders";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -38,11 +39,14 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       const term = search.trim().slice(0, 100);
-      where.OR = [
-        { id: { contains: term } },
-        { user: { email: { contains: term } } },
-        { user: { name: { contains: term } } },
-      ];
+      // The read-only demo admin may only search by order id, not probe for customers.
+      where.OR = auth.user.readOnly
+        ? [{ id: { contains: term, mode: "insensitive" } }]
+        : [
+            { id: { contains: term, mode: "insensitive" } },
+            { user: { email: { contains: term, mode: "insensitive" } } },
+            { user: { name: { contains: term, mode: "insensitive" } } },
+          ];
     }
 
     if (startDate || endDate) {
@@ -108,7 +112,7 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json({
-      orders,
+      orders: auth.user.readOnly ? orders.map(hideCustomerDetails) : orders,
       pagination: {
         page,
         limit: ITEMS_PER_PAGE,

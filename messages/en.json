@@ -248,7 +248,9 @@
     "keepOrder": "Keep order",
     "restoreStock": "Return the items to stock",
     "orderNotFound": "Order not found",
-    "orderNotFoundDesc": "This order doesn't exist or you can't access it."
+    "orderNotFoundDesc": "This order doesn't exist or you can't access it.",
+    "readOnlyTitle": "Read-only demo",
+    "readOnlyDesc": "You're signed in as the demo admin. Look around freely: saving, deleting and order updates are turned off, and customer details are hidden."
   },
   "filters": {
     "filters": "Filters",
