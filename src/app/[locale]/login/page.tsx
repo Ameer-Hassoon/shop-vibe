@@ -1,119 +1,104 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { Button, Card, Field, Input } from "@/components/ui";
+import { PasswordInput } from "@/components/account/PasswordInput";
+import { safeCallback } from "@/components/account/authRedirect";
+import { AlertIcon } from "@/components/account/icons";
 
-export default function LoginPage() {
-  const t = useTranslations();
-  const locale = useLocale();
+const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function LoginForm() {
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
   const router = useRouter();
+  const callbackUrl = safeCallback(useSearchParams().get("callbackUrl"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
+    if (loading) return;
     setError("");
+    const errs: typeof fieldErrors = {};
+    if (!email.trim()) errs.email = t("emailRequired");
+    else if (!emailRe.test(email.trim())) errs.email = t("emailInvalid");
+    if (!password) errs.password = t("passwordRequired");
+    setFieldErrors(errs);
+    if (errs.email || errs.password) return;
 
+    setLoading(true);
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
+      const result = await signIn("credentials", { email: email.trim(), password, redirect: false });
       if (result?.error) {
-        if (result.error === "CredentialsSignin") {
-          setError(t("auth.invalidCredentials"));
-        } else {
-          setError(t("auth.genericError"));
-        }
-      } else {
-        router.push("/", { locale });
-        router.refresh();
+        if (result.error === "CredentialsSignin") setError(t("invalidCredentials"));
+        else if (result.error.includes("RateLimited")) setError(t("rateLimited"));
+        else setError(t("genericError"));
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      setError(t("auth.genericError"));
-    } finally {
+      router.replace(callbackUrl);
+      router.refresh();
+    } catch {
+      setError(t("genericError"));
       setLoading(false);
     }
-  };
+  }
+
+  const registerHref = callbackUrl !== "/" ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/register";
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{t('auth.welcomeBack')}</h1>
-          <p className="text-gray-600 mt-2">{t("auth.signInToContinue")}</p>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white shadow-sm rounded-lg p-8"
-        >
+    <div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col justify-center px-4 py-10">
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("welcomeBack")}</h1>
+        <p className="mt-2 text-muted">{t("signInToContinue")}</p>
+      </div>
+      <Card className="p-6 sm:p-8">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg">
+            <div role="alert" className="flex items-start gap-2 rounded-xl bg-danger-soft p-3 text-sm text-danger">
+              <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
-
-          <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              {t("auth.email")}
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder={t("auth.enterYourEmail")}
-            />
-          </div>
-
-          <div className="mb-6">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              {t("auth.password")}
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder={t("auth.enterYourPassword")}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? t("auth.signingIn") : t('common.login')}
-          </button>
-
-          <p className="mt-4 text-center text-sm text-gray-600">
-            {t('auth.dontHaveAccount')}{" "}
-            <Link href="/register" className="text-indigo-600 hover:underline">
-              {t('common.register')}
-            </Link>
-          </p>
+          <Field label={t("email")} error={fieldErrors.email}>
+            {(p) => (
+              <Input {...p} type="email" name="email" autoComplete="email" inputMode="email" dir="ltr" className="text-start"
+                value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("enterYourEmail")} />
+            )}
+          </Field>
+          <Field label={t("password")} error={fieldErrors.password}>
+            {(p) => (
+              <PasswordInput {...p} name="password" autoComplete="current-password" value={password}
+                onChange={(e) => setPassword(e.target.value)} placeholder={t("enterYourPassword")} />
+            )}
+          </Field>
+          <Button type="submit" size="lg" className="w-full" loading={loading}>
+            {loading ? t("signingIn") : tc("login")}
+          </Button>
         </form>
-      </div>
+        <p className="mt-6 text-center text-sm text-muted">
+          {t("dontHaveAccount")}{" "}
+          <Link href={registerHref} className="font-semibold text-brand hover:underline">
+            {tc("register")}
+          </Link>
+        </p>
+      </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

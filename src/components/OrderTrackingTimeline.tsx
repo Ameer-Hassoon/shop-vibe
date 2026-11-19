@@ -1,167 +1,107 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { cn } from "@/lib/cn";
+import { formatDate } from "@/lib/format";
+import { AlertIcon, CheckIcon } from "@/components/account/icons";
+
 interface OrderTrackingTimelineProps {
   status: string;
   estimatedDelivery?: string | null;
+  trackingNumber?: string | null;
+  carrier?: string | null;
+  className?: string;
 }
 
-const statusSteps = [
-  {
-    key: "PENDING",
-    icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
-  },
-  {
-    key: "PROCESSING",
-    icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
-  },
-  {
-    key: "SHIPPED",
-    icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4",
-  },
-  { key: "DELIVERED", icon: "M5 13l4 4L19 7" },
-];
+const STEPS = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] as const;
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "Order Placed",
-  PROCESSING: "Processing",
-  SHIPPED: "Shipped",
-  DELIVERED: "Delivered",
-  CANCELLED_ORDER: "Order Cancelled",
-  REFUNDED_ORDER: "Order Refunded",
-  cancelledText: "This order has been cancelled.",
-  refundedText: "This order has been refunded.",
-  inProgress: "In progress",
-  orderStatus: "Order Status",
-  estimatedDelivery: "Estimated Delivery",
-};
-
+/**
+ * Order progress: horizontal on >= sm, vertical on mobile. Uses logical properties only, so it mirrors in RTL.
+ * CANCELLED orders show a notice instead of progress.
+ */
 export function OrderTrackingTimeline({
   status,
   estimatedDelivery,
+  trackingNumber,
+  carrier,
+  className,
 }: OrderTrackingTimelineProps) {
-  let currentIndex = statusSteps.findIndex((s) => s.key === status);
-  const isCancelled = status === "CANCELLED" || status === "REFUNDED";
-  const isTerminalStatus = (s: string) =>
-    s === "DELIVERED" || s === "CANCELLED" || s === "REFUNDED";
+  const t = useTranslations("orders");
+  const locale = useLocale();
 
-  if (currentIndex === -1) {
-    currentIndex = 0;
+  if (status === "CANCELLED") {
+    return (
+      <div role="status" className={cn("flex items-start gap-3 rounded-xl bg-danger-soft p-4 text-danger", className)}>
+        <AlertIcon className="mt-0.5 h-5 w-5 shrink-0" />
+        <div>
+          <p className="font-semibold">{t("status.CANCELLED")}</p>
+          <p className="mt-0.5 text-sm">{t("cancelledText")}</p>
+        </div>
+      </div>
+    );
   }
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const getStepLabel = (key: string) => {
-    return STATUS_LABELS[key] || key;
-  };
-
-  const getStatusTitle = () => {
-    if (status === "CANCELLED") return STATUS_LABELS["CANCELLED_ORDER"];
-    if (status === "REFUNDED") return STATUS_LABELS["REFUNDED_ORDER"];
-    return STATUS_LABELS["orderStatus"];
-  };
-
-  const getCancelledText = () => {
-    if (status === "CANCELLED") return STATUS_LABELS["cancelledText"];
-    return STATUS_LABELS["refundedText"];
-  };
+  const found = STEPS.indexOf(status as (typeof STEPS)[number]);
+  const current = found === -1 ? 0 : found;
+  const delivered = status === "DELIVERED";
+  const showEta = estimatedDelivery && !delivered && !Number.isNaN(new Date(estimatedDelivery).getTime());
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-      {!isCancelled && <h3 className="font-semibold text-gray-900 dark:text-white mb-6">{getStatusTitle()}</h3>}
+    <div className={className}>
+      <ol className="grid grid-cols-1 sm:grid-cols-5" aria-label={t("trackOrder")}>
+        {STEPS.map((step, i) => {
+          const done = i < current || (delivered && i === current);
+          const active = i === current && !delivered;
+          const last = i === STEPS.length - 1;
+          return (
+            <li
+              key={step}
+              aria-current={active ? "step" : undefined}
+              className="relative flex items-center gap-3 pb-6 last:pb-0 sm:flex-col sm:gap-2 sm:pb-0 sm:text-center"
+            >
+              {!last && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute start-[15px] top-8 h-[calc(100%-2rem)] w-0.5 sm:start-1/2 sm:top-[15px] sm:h-0.5 sm:w-full",
+                    i < current ? "bg-brand" : "bg-line",
+                  )}
+                />
+              )}
+              <span
+                className={cn(
+                  "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
+                  done && "border-brand bg-brand text-brand-fg",
+                  active && "border-brand bg-surface text-brand ring-4 ring-brand-soft",
+                  !done && !active && "border-line-strong bg-surface text-subtle",
+                )}
+              >
+                {done ? <CheckIcon className="h-4 w-4" /> : <span className="tabular">{i + 1}</span>}
+              </span>
+              <span className={cn("text-sm", done || active ? "font-semibold text-fg" : "text-muted")}>
+                {t(`status.${step}`)}
+                {active && <span className="sr-only"> ({t("inProgress")})</span>}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
 
-      {isCancelled ? (
-        <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/30 rounded-lg">
-          <svg
-            className="w-6 h-6 text-red-500 dark:text-red-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-          <div>
-            <p className="font-medium text-red-700 dark:text-red-300">
-              {getStatusTitle()}
-            </p>
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {getCancelledText()}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="relative">
-            <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-600" />
-            <div className="space-y-8">
-              {statusSteps.map((step, index) => {
-                const isCompleted = index <= currentIndex;
-                const isCurrent = index === currentIndex;
-
-                return (
-                  <div
-                    key={step.key}
-                    className="relative flex items-start gap-4"
-                  >
-                    <div
-                      className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center ${
-                        isCompleted ? "bg-indigo-600" : "bg-gray-200 dark:bg-gray-600"
-                      }`}
-                    >
-                      <svg
-                        className={`w-5 h-5 ${isCompleted ? "text-white" : "text-gray-400 dark:text-gray-300"}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d={step.icon}
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <p
-                        className={`font-medium ${isCurrent ? "text-indigo-600 dark:text-indigo-400" : isCompleted ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}`}
-                      >
-                        {getStepLabel(step.key)}
-                      </p>
-                      {isCurrent && !isTerminalStatus(status) && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {STATUS_LABELS["inProgress"]}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {estimatedDelivery && status !== "DELIVERED" && (
-            <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
-              <p className="text-sm text-gray-600 dark:text-gray-400">{STATUS_LABELS["estimatedDelivery"]}</p>
-              <p className="font-medium text-green-700 dark:text-green-400">
-                {formatDate(estimatedDelivery)}
-              </p>
+      {(showEta || trackingNumber) && (
+        <dl className="mt-6 grid gap-3 rounded-xl bg-surface-2 p-4 text-sm sm:grid-cols-2">
+          {showEta && (
+            <div>
+              <dt className="text-muted">{t("estimatedDelivery")}</dt>
+              <dd className="font-semibold">{formatDate(estimatedDelivery as string, locale)}</dd>
             </div>
           )}
-        </>
+          {trackingNumber && (
+            <div>
+              <dt className="text-muted">{carrier ? t("trackingWithCarrier", { carrier }) : t("trackingNumber")}</dt>
+              <dd className="tabular font-semibold" dir="ltr">{trackingNumber}</dd>
+            </div>
+          )}
+        </dl>
       )}
     </div>
   );

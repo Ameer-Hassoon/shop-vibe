@@ -1,111 +1,160 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useWishlistStore } from "@/store/wishlist";
-import { Product } from "@/types";
-import Image from "next/image";
-import { useLocale } from "next-intl";
+import { useCartStore } from "@/store/cart";
+import { Badge, Button, Card, EmptyState } from "@/components/ui";
+import { buttonClass } from "@/components/ui/Button";
+import { AlertIcon, HeartIcon, TrashIcon } from "@/components/account/icons";
+import { ProductThumb } from "@/components/checkout/ProductThumb";
+import { formatPrice } from "@/lib/format";
+import type { Product } from "@/types";
+
+const shell = "mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8";
 
 export default function WishlistPage() {
-  const t = useTranslations();
+  const t = useTranslations("wishlist");
+  const tc = useTranslations("common");
+  const tCart = useTranslations("cart");
   const locale = useLocale();
-  const { items, isHydrated } = useWishlistStore();
+  const items = useWishlistStore((s) => s.items);
+  const isHydrated = useWishlistStore((s) => s.isHydrated);
+  const removeItem = useWishlistStore((s) => s.removeItem);
+  const addToCart = useCartStore((s) => s.addToCart);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [nonce, setNonce] = useState(0);
+  const [added, setAdded] = useState<string | null>(null);
 
+  const idsKey = items.join(",");
   useEffect(() => {
-    async function fetchProducts() {
-      if (items.length === 0) {
-        setProducts([]);
+    if (!isHydrated) return;
+    if (!idsKey) return;
+    const ctrl = new AbortController();
+    fetch(`/api/products?ids=${encodeURIComponent(idsKey)}&limit=100`, { signal: ctrl.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("fetch");
+        const data = (await res.json()) as { products?: Product[] };
+        setProducts(data.products ?? []);
+        setError(false);
         setLoading(false);
-        return;
-      }
-
-      try {
-        const ids = items.join(",");
-        const res = await fetch(`/api/products?ids=${ids}&limit=100`);
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data.products || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch wishlist products:", error);
-      } finally {
+      })
+      .catch((err) => {
+        if (err?.name === "AbortError") return;
+        setError(true);
         setLoading(false);
-      }
-    }
+      });
+    return () => ctrl.abort();
+  }, [idsKey, isHydrated, nonce]);
 
-    if (isHydrated) {
-      fetchProducts();
-    }
-  }, [items, isHydrated]);
+  const title = <h1 className="mb-8 text-2xl font-bold tracking-tight sm:text-3xl">{t("myWishlist")}</h1>;
 
-  const removeFromWishlist = useWishlistStore((state) => state.removeItem);
+  const visible = products.filter((p) => items.includes(p.id));
 
-  if (!isHydrated || loading) {
+  if (!isHydrated || (items.length > 0 && loading)) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">{t('wishlist.myWishlist')}</h1>
-        <div className="animate-pulse">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 h-80" />
-            ))}
-          </div>
+      <div className={shell} aria-busy="true">
+        {title}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-80 animate-pulse rounded-[var(--radius-card)] bg-surface-2" />
+          ))}
         </div>
       </div>
     );
   }
 
-  if (items.length === 0) {
+  if (error && items.length > 0) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">{t('wishlist.myWishlist')}</h1>
-        <p className="text-gray-600">{t('wishlist.emptyWishlist')}</p>
-        <Link
-          href="/"
-          className="inline-block mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-        >
-          {t('cart.continueShopping')}
-        </Link>
+      <div className={shell}>
+        {title}
+        <Card>
+          <EmptyState
+            icon={<AlertIcon className="h-7 w-7" />}
+            title={t("loadError")}
+            description={tc("error")}
+            action={<Button onClick={() => { setLoading(true); setNonce((n) => n + 1); }}>{tc("retry")}</Button>}
+          />
+        </Card>
+      </div>
+    );
+  }
+
+  if (items.length === 0 || visible.length === 0) {
+    return (
+      <div className={shell}>
+        {title}
+        <Card>
+          <EmptyState
+            icon={<HeartIcon className="h-7 w-7" />}
+            title={t("emptyWishlist")}
+            description={t("emptyHint")}
+            action={
+              <Link href="/" className={buttonClass("primary", "lg")}>
+                {tCart("continueShopping")}
+              </Link>
+            }
+          />
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">{t('wishlist.myWishlist')}</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product) => (
-          <div key={product.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <Link href={`/product/${product.id}`} locale={locale}>
-              <div className="relative aspect-square">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
-              </div>
-            </Link>
-            <div className="p-4">
-              <Link href={`/product/${product.id}`} locale={locale}>
-                <h3 className="font-semibold text-lg hover:text-indigo-600">{product.name}</h3>
-              </Link>
-              <p className="text-gray-600 mt-1">${product.price.toFixed(2)}</p>
-              <button
-                onClick={() => removeFromWishlist(product.id)}
-                className="mt-3 text-red-600 hover:text-red-700 text-sm"
-              >
-                {t('product.removeFromWishlist')}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className={shell}>
+      {title}
+      <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {visible.map((p) => {
+          const soldOut = p.stock <= 0;
+          return (
+            <li key={p.id}>
+              <Card className="flex h-full flex-col overflow-hidden">
+                <Link href={`/product/${p.id}`} className="group relative block">
+                  <ProductThumb
+                    src={p.image}
+                    alt={p.name}
+                    className="aspect-square w-full rounded-none"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  />
+                  {soldOut && (
+                    <Badge tone="neutral" className="absolute start-3 top-3 bg-surface">{t("soldOut")}</Badge>
+                  )}
+                </Link>
+                <div className="flex flex-1 flex-col p-4">
+                  <Link href={`/product/${p.id}`} className="line-clamp-2 font-semibold transition-colors hover:text-brand">
+                    {p.name}
+                  </Link>
+                  <p className="tabular mt-1 font-bold">{formatPrice(p.price, locale)}</p>
+                  <div className="mt-auto flex gap-2 pt-4">
+                    <Button
+                      className="flex-1"
+                      disabled={soldOut}
+                      onClick={() => {
+                        addToCart(p);
+                        setAdded(p.id);
+                      }}
+                    >
+                      {added === p.id ? t("addedToCart") : t("addToCart")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label={t("removeNamed", { name: p.name })}
+                      onClick={() => removeItem(p.id)}
+                    >
+                      <TrashIcon className="mx-auto" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="sr-only" role="status">{added ? t("addedToCart") : ""}</p>
     </div>
   );
 }
