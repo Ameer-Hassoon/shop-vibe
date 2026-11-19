@@ -42,10 +42,16 @@ export function QuickViewCard({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  useEffect(() => {
+  // Start from the props again whenever the product or its initial numbers change.
+  const propsKey = `${product.id}|${initialRating}|${initialReviewCount}`;
+  const [shownKey, setShownKey] = useState(propsKey);
+  if (shownKey !== propsKey) {
+    setShownKey(propsKey);
     setRating(initialRating);
     setReviewCount(initialReviewCount);
+  }
 
+  useEffect(() => {
     const controller = new AbortController();
 
     (async () => {
@@ -71,7 +77,7 @@ export function QuickViewCard({
     })();
 
     return () => controller.abort();
-  }, [product.id, initialRating, initialReviewCount]);
+  }, [product.id]);
 
   useEffect(() => {
     if (cardRef.current) {

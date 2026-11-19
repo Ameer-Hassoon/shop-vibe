@@ -11,8 +11,7 @@ export interface AdminProduct {
   createdAt: string;
 }
 
-export const ORDER_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export { ORDER_STATUSES, type OrderStatus } from "@/lib/orderStatus";
 
 export interface AdminOrderItem {
   id: string;

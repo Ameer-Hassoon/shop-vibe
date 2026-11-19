@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { ORDER_STATUSES } from "@/lib/validation";
+import { isOrderStatus } from "@/lib/orderStatus";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
-    if (status && (ORDER_STATUSES as readonly string[]).includes(status)) {
+    if (isOrderStatus(status)) {
       where.status = status;
     }
 
@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
       if (endDate) {
         const end = new Date(endDate);
         if (!isNaN(end.getTime())) {
-          end.setHours(23, 59, 59, 999);
+          // "2026-11-19" parses as UTC midnight, so extend to the end of that UTC day.
+          end.setUTCHours(23, 59, 59, 999);
           parsedEnd = end;
         }
       }

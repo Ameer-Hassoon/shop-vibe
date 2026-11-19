@@ -5,11 +5,13 @@ import { parseBody, productCreateSchema } from "@/lib/validation";
 
 const ITEMS_PER_PAGE = 20;
 const MAX_LIMIT = 100;
+const MAX_IDS = 100;
+const MAX_SEARCH_LENGTH = 100;
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search") || "";
+    const search = (searchParams.get("search") || "").trim().slice(0, MAX_SEARCH_LENGTH);
     const category = searchParams.get("category") || "";
     const minPriceParam = parseFloat(searchParams.get("minPrice") || "0");
     const maxPriceParam = parseFloat(searchParams.get("maxPrice") || "0");
@@ -29,7 +31,11 @@ export async function GET(request: NextRequest) {
 
     const idsParam = searchParams.get("ids");
     if (idsParam) {
-      const ids = idsParam.split(",").map((id) => id.trim()).filter(Boolean);
+      const ids = idsParam
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .slice(0, MAX_IDS);
       if (ids.length > 0) {
         where.id = { in: ids };
       }
@@ -43,9 +49,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (category) {
-      const categories = category.split(",").map((c) => c.trim());
-      where.category =
-        categories.length === 1 ? categories[0] : { in: categories };
+      const categories = category
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean);
+      if (categories.length > 0) {
+        where.category = categories.length === 1 ? categories[0] : { in: categories };
+      }
     }
 
     const inStockOnly = searchParams.get("inStock") === "true";

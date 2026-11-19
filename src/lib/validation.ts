@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { ORDER_STATUSES } from "@/lib/orderStatus";
 
-/** Statuses an order can have (agreed data contract). */
-export const ORDER_STATUSES = [
-  "PENDING",
-  "CONFIRMED",
-  "PROCESSING",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-] as const;
+export { ORDER_STATUSES };
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -157,6 +150,7 @@ export const adminOrderUpdateSchema = z.object({
     .optional(),
   restoreStock: z.boolean().optional(),
 });
+export type AdminOrderUpdateInput = z.infer<typeof adminOrderUpdateSchema>;
 
 // ---------------------------------------------------------------------------
 // request helpers

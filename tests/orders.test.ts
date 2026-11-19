@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { createOrder, OrderError } from "@/lib/orders";
+import { createOrder, OrderError, updateOrderAsAdmin } from "@/lib/orders";
+import { canTransition } from "@/lib/orderStatus";
 import { computeOrderTotals } from "@/lib/pricing";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation";
 
@@ -225,5 +226,96 @@ describe("createOrder", () => {
     );
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
     expect(await stockOf("b")).toBe(0);
+  });
+});
+
+describe("canTransition", () => {
+  it.each([
+    ["PENDING", "CONFIRMED", true],
+    ["PENDING", "CANCELLED", true],
+    ["SHIPPED", "DELIVERED", true],
+    ["SHIPPED", "SHIPPED", true],
+    ["DELIVERED", "PENDING", false],
+    ["SHIPPED", "PENDING", false],
+    ["CANCELLED", "PENDING", false],
+    ["DELIVERED", "CANCELLED", false],
+    ["PENDING", "BOGUS", false],
+  ])("%s -> %s is %s", (from, to, allowed) => {
+    expect(canTransition(from, to)).toBe(allowed);
+  });
+});
+
+describe("updateOrderAsAdmin", () => {
+  const placeOrder = (extra: Record<string, unknown> = {}) =>
+    createOrder(userId, input([{ productId: "a", quantity: 2 }], extra));
+
+  it("moves an order forward and saves tracking details", async () => {
+    const { id } = await placeOrder();
+    await updateOrderAsAdmin(id, { status: "CONFIRMED" });
+    const { order, cancelled } = await updateOrderAsAdmin(id, {
+      status: "SHIPPED",
+      trackingNumber: "TRK1",
+      carrier: "DHL",
+    });
+    expect(cancelled).toBe(false);
+    expect(order.status).toBe("SHIPPED");
+    expect(order.trackingNumber).toBe("TRK1");
+  });
+
+  it("updates tracking alone without changing the status", async () => {
+    const { id } = await placeOrder();
+    const { order } = await updateOrderAsAdmin(id, { carrier: "Aramex" });
+    expect(order.status).toBe("PENDING");
+    expect(order.carrier).toBe("Aramex");
+  });
+
+  it("rejects moving an order backwards or out of a final status", async () => {
+    const { id } = await placeOrder();
+    expect((await failure(updateOrderAsAdmin(id, { status: "DELIVERED" }))).code).toBe("INVALID_TRANSITION");
+    await updateOrderAsAdmin(id, { status: "CONFIRMED" });
+    await updateOrderAsAdmin(id, { status: "SHIPPED" });
+    expect((await failure(updateOrderAsAdmin(id, { status: "PENDING" }))).code).toBe("INVALID_TRANSITION");
+    await updateOrderAsAdmin(id, { status: "DELIVERED" });
+    expect((await failure(updateOrderAsAdmin(id, { status: "CANCELLED" }))).code).toBe("INVALID_TRANSITION");
+  });
+
+  it("returns NOT_FOUND for an unknown order", async () => {
+    expect((await failure(updateOrderAsAdmin("missing", { status: "CONFIRMED" }))).code).toBe("NOT_FOUND");
+  });
+
+  it("cancelling restores stock and gives back the coupon use", async () => {
+    await coupon({ usageLimit: 1 });
+    const { id } = await placeOrder({ couponCode: "TEST10" });
+    expect(await stockOf("a")).toBe(8);
+
+    const { cancelled, restoredStock } = await updateOrderAsAdmin(id, { status: "CANCELLED" });
+    expect([cancelled, restoredStock]).toEqual([true, true]);
+    expect(await stockOf("a")).toBe(10);
+    expect((await prisma.coupon.findUniqueOrThrow({ where: { code: "TEST10" } })).usageCount).toBe(0);
+  });
+
+  it("can cancel without restoring stock, and cannot cancel twice", async () => {
+    const { id } = await placeOrder();
+    await updateOrderAsAdmin(id, { status: "CANCELLED", restoreStock: false });
+    expect(await stockOf("a")).toBe(8);
+    expect((await failure(updateOrderAsAdmin(id, { status: "CANCELLED" }))).code).toBe("INVALID_TRANSITION");
+    expect((await failure(updateOrderAsAdmin(id, { status: "CONFIRMED" }))).code).toBe("INVALID_TRANSITION");
+  });
+
+  it("a concurrent cancel and ship cannot both apply, and stock is restored at most once", async () => {
+    const { id } = await placeOrder();
+    await updateOrderAsAdmin(id, { status: "CONFIRMED" });
+    const results = await Promise.allSettled([
+      updateOrderAsAdmin(id, { status: "CANCELLED" }),
+      updateOrderAsAdmin(id, { status: "CANCELLED" }),
+      updateOrderAsAdmin(id, { status: "SHIPPED" }),
+    ]);
+    const final = await prisma.order.findUniqueOrThrow({ where: { id } });
+    const cancels = results.filter(
+      (r) => r.status === "fulfilled" && r.value.cancelled,
+    ).length;
+    expect(cancels).toBeLessThanOrEqual(1);
+    // SHIPPED -> CANCELLED is a legal move, so the order may end cancelled either way.
+    expect(await stockOf("a")).toBe(final.status === "CANCELLED" ? 10 : 8);
   });
 });

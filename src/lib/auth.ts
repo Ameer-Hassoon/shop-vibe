@@ -10,6 +10,8 @@ import {
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 10;
+// How long a signed-in user's role is trusted before it is re-read from the database.
+const ROLE_REFRESH_MS = 5 * 60 * 1000;
 
 const loginLimiter = createInMemoryRateLimiter({
   windowMs: LOGIN_WINDOW_MS,
@@ -76,6 +78,28 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.refreshedAt = Date.now();
+        return token;
+      }
+      // A JWT lives for 30 days, so re-check the account now and then: a demoted admin loses
+      // admin access and a deleted account is signed out within ROLE_REFRESH_MS.
+      if (token.id && Date.now() - (token.refreshedAt ?? 0) > ROLE_REFRESH_MS) {
+        try {
+          const fresh = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: { role: true },
+          });
+          if (!fresh) {
+            delete token.id;
+            delete token.role;
+          } else {
+            token.role = fresh.role === "ADMIN" ? "ADMIN" : "USER";
+            token.refreshedAt = Date.now();
+          }
+        } catch (err) {
+          // Keep the current token on a transient database error; it is retried next request.
+          console.error("Failed to refresh session user:", err);
+        }
       }
       return token;
     },

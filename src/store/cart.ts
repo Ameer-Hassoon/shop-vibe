@@ -135,6 +135,9 @@ export const useCartStore = create<CartState & CartExtras>()(
     {
       name: 'cart-storage',
       version: 1,
+      // Carts saved before versioning (v0) have the same shape; `merge` below sanitizes any
+      // version's items, so pass them through instead of discarding the visitor's cart.
+      migrate: (persisted) => persisted as { items: CartItemType[] },
       // Hydrated manually from an effect (see Providers) so the server and first client render match.
       skipHydration: true,
       partialize: (state) => ({ items: state.items }),

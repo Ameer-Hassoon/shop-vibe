@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { parseBody, searchHistorySchema } from "@/lib/validation";
 
+const MAX_HISTORY_PER_USER = 50;
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -63,9 +65,21 @@ export async function POST(request: NextRequest) {
     const parsed = await parseBody(request, searchHistorySchema);
     if (parsed.response) return parsed.response;
 
+    const userId = auth.user.id;
     const history = await prisma.searchHistory.create({
-      data: { userId: auth.user.id, query: parsed.data.query },
+      data: { userId, query: parsed.data.query },
     });
+
+    // Only the latest entries are ever shown, so keep the table from growing without bound.
+    const stale = await prisma.searchHistory.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      skip: MAX_HISTORY_PER_USER,
+      select: { id: true },
+    });
+    if (stale.length > 0) {
+      await prisma.searchHistory.deleteMany({ where: { id: { in: stale.map((s) => s.id) } } });
+    }
 
     return NextResponse.json(history);
   } catch (error) {

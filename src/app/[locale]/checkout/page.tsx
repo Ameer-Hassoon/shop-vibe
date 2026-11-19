@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useCartStore } from "@/store/cart";
@@ -53,14 +53,11 @@ export default function CheckoutPage() {
   const lines = useMemo(() => items.map((i) => ({ price: i.product.price, quantity: i.quantity })), [items]);
   const totals = useMemo(() => computeOrderTotals(lines, { coupon }), [lines, coupon]);
 
-  // Drop the coupon if the subtotal falls below its minimum purchase.
-  useEffect(() => {
-    if (coupon && totals.subtotal < coupon.minPurchase) {
-      setCoupon(null);
-      setCouponNotice(t("couponRemovedMin", { amount: money(coupon.minPurchase) }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totals.subtotal, coupon]);
+  // Drop the coupon (during render, not in an effect) if the subtotal falls below its minimum.
+  if (coupon && totals.subtotal < coupon.minPurchase) {
+    setCoupon(null);
+    setCouponNotice(t("couponRemovedMin", { amount: money(coupon.minPurchase) }));
+  }
 
   // Only issues for products still in the cart are relevant.
   const activeIssues = issues.filter((i) => items.some((it) => it.productId === i.productId));
