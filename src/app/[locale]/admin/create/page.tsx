@@ -1,23 +1,26 @@
 "use client";
 
-import { useTranslations } from 'next-intl';
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { PageHeader } from "@/components/admin/AdminUI";
+import { IconArrowBack } from "@/components/admin/icons";
+import { ProductForm } from "@/components/admin/ProductForm";
 
 export default function AdminCreatePage() {
-  const t = useTranslations();
-
+  const t = useTranslations("admin");
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">
-        {t('common.add')} {t('common.product')}
-      </h1>
-      <p className="text-gray-600">{t("common.comingSoon")}</p>
-      <Link
-        href="/admin"
-        className="inline-block mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-      >
-        {t('common.back')}
-      </Link>
-    </div>
+    <>
+      <PageHeader
+        title={t("createTitle")}
+        description={t("createSubtitle")}
+        back={
+          <Link href="/admin/products" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-fg">
+            <IconArrowBack className="h-4 w-4" />
+            {t("backToProducts")}
+          </Link>
+        }
+      />
+      <ProductForm />
+    </>
   );
 }
