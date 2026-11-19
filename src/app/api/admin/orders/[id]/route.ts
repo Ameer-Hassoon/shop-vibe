@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
-import { OrderError, updateOrderAsAdmin } from "@/lib/orders";
+import { requireAdmin, requireAdminWrite } from "@/lib/auth";
+import { hideCustomerDetails, OrderError, updateOrderAsAdmin } from "@/lib/orders";
 import { adminOrderUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
@@ -39,7 +39,7 @@ export async function GET(
       return NextResponse.json({ error: "Order not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
-    return NextResponse.json(order);
+    return NextResponse.json(auth.user.readOnly ? hideCustomerDetails(order) : order);
   } catch (error) {
     console.error("Admin order fetch error:", error);
     return NextResponse.json(
@@ -54,7 +54,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await requireAdmin();
+    const auth = await requireAdminWrite();
     if (auth.response) return auth.response;
 
     const { id } = await params;

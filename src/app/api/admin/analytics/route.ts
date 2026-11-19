@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { hideCustomerDetails } from "@/lib/orders";
 
 // Cancelled orders never count as revenue or sales.
 const COUNTED = { status: { not: "CANCELLED" } } as const;
@@ -70,7 +71,7 @@ export async function GET() {
         totalCustomers,
         recentRevenue: recentRevenue._sum.total || 0,
       },
-      recentOrders,
+      recentOrders: auth.user.readOnly ? recentOrders.map(hideCustomerDetails) : recentOrders,
       topProducts,
       lowStockProducts,
     });

@@ -3,17 +3,15 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  createInMemoryRateLimiter,
-  getClientIpFromRequest,
-} from "@/lib/rateLimit";
+import { createRateLimiter, getClientIpFromRequest } from "@/lib/rateLimit";
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 10;
 // How long a signed-in user's role is trusted before it is re-read from the database.
 const ROLE_REFRESH_MS = 5 * 60 * 1000;
 
-const loginLimiter = createInMemoryRateLimiter({
+const loginLimiter = createRateLimiter({
+  name: "login",
   windowMs: LOGIN_WINDOW_MS,
   maxAttempts: MAX_LOGIN_ATTEMPTS,
 });
@@ -21,9 +19,20 @@ const loginLimiter = createInMemoryRateLimiter({
 export type SessionUser = {
   id: string;
   role: "USER" | "ADMIN";
+  /** True for the public demo admin: can see the back office but not change anything. */
+  readOnly?: boolean;
   email?: string | null;
   name?: string | null;
 };
+
+/**
+ * The demo admin account (DEMO_ADMIN_EMAIL) is shared publicly so visitors can explore the
+ * back office. It gets admin read access only; every admin write is refused.
+ */
+export function isReadOnlyAccount(email: string | null | undefined): boolean {
+  const demo = process.env.DEMO_ADMIN_EMAIL?.trim().toLowerCase();
+  return !!demo && !!email && email.trim().toLowerCase() === demo;
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -48,7 +57,7 @@ export const authOptions: NextAuthOptions = {
         // (shared bucket), one attacker cannot lock every user out of logging in.
         const limiterKey = `${getClientIpFromRequest(req as unknown as Request)}|${email}`;
 
-        if (loginLimiter.isRateLimited(limiterKey)) {
+        if (await loginLimiter.isRateLimited(limiterKey)) {
           console.warn("Login rate limit exceeded for", limiterKey);
           throw new Error("RateLimited: too many login attempts");
         }
@@ -59,11 +68,11 @@ export const authOptions: NextAuthOptions = {
           : false;
 
         if (!user || !isPasswordValid) {
-          loginLimiter.increment(limiterKey);
+          await loginLimiter.increment(limiterKey);
           return null;
         }
 
-        loginLimiter.reset(limiterKey);
+        await loginLimiter.reset(limiterKey);
         return {
           id: user.id,
           email: user.email,
@@ -107,6 +116,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id ?? "";
         session.user.role = token.role ?? "USER";
+        session.user.readOnly = isReadOnlyAccount(token.email);
       }
       return session;
     },
@@ -152,4 +162,14 @@ export async function requireAdmin(): Promise<AuthResult> {
   if (!user) return deny("Unauthorized", "UNAUTHORIZED", 401);
   if (user.role !== "ADMIN") return deny("Forbidden", "FORBIDDEN", 403);
   return { user, response: null };
+}
+
+/** Like `requireAdmin`, but also refuses the read-only demo admin. Use for every admin write. */
+export async function requireAdminWrite(): Promise<AuthResult> {
+  const auth = await requireAdmin();
+  if (auth.response) return auth;
+  if (auth.user.readOnly || isReadOnlyAccount(auth.user.email)) {
+    return deny("This is a read-only demo account. Changes are disabled.", "DEMO_READ_ONLY", 403);
+  }
+  return auth;
 }

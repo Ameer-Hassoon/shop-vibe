@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { createInMemoryRateLimiter, getClientIpFromRequest } from "@/lib/rateLimit";
+import { createRateLimiter, getClientIpFromRequest } from "@/lib/rateLimit";
 import { parseBody, registerSchema } from "@/lib/validation";
 
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const MAX_REQUESTS = 10;
 
-const limiter = createInMemoryRateLimiter({
+const limiter = createRateLimiter({
+  name: "register",
   windowMs: RATE_LIMIT_WINDOW,
   maxAttempts: MAX_REQUESTS,
 });
@@ -19,16 +20,16 @@ const emailTaken = () =>
 export async function POST(request: NextRequest) {
   const clientIP = getClientIpFromRequest(request);
 
-  // Every attempt counts (not only failures), otherwise accounts could be mass-created.
-  if (limiter.isRateLimited(clientIP)) {
-    return NextResponse.json(
-      { error: "Too many requests. Please try again later.", code: "RATE_LIMITED" },
-      { status: 429 },
-    );
-  }
-  limiter.increment(clientIP);
-
   try {
+    // Every attempt counts (not only failures), otherwise accounts could be mass-created.
+    if (await limiter.isRateLimited(clientIP)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later.", code: "RATE_LIMITED" },
+        { status: 429 },
+      );
+    }
+    await limiter.increment(clientIP);
+
     const parsed = await parseBody(request, registerSchema);
     if (parsed.response) return parsed.response;
     const { name, email, password } = parsed.data;

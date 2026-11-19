@@ -1,4 +1,6 @@
-export type RateLimitRecord = { count: number; timestamp: number };
+import { createHash } from "node:crypto";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 const SHARED_BUCKET = "untrusted-proxy";
 const MAX_KEY_LENGTH = 64;
@@ -59,66 +61,58 @@ export function getClientIpFromRequest(request: Request): string {
   return SHARED_BUCKET;
 }
 
-export function createInMemoryRateLimiter({
+/**
+ * A fixed-window rate limiter whose counters live in the database, so the limit holds across
+ * serverless instances (an in-memory Map would give every instance its own count).
+ * Keys are hashed before storage; pass a distinct `name` per limiter so their keys never collide.
+ */
+export function createRateLimiter({
+  name,
   windowMs,
   maxAttempts,
 }: {
+  name: string;
   windowMs: number;
   maxAttempts: number;
 }) {
-  const map = new Map<string, RateLimitRecord>();
-
-  const purgeStale = () => {
-    const now = Date.now();
-    for (const [key, record] of map.entries()) {
-      if (now - record.timestamp > windowMs) {
-        map.delete(key);
-      }
-    }
-  };
+  const storageKey = (key: string) =>
+    createHash("sha256").update(`${name}:${key}`).digest("hex");
+  const windowStartCutoff = () => new Date(Date.now() - windowMs);
 
   return {
-    /**
-     * Returns true if the given identifier has exceeded the limit.
-     * This function does not mutate state.
-     */
-    isRateLimited(ip: string) {
-      purgeStale();
-      const record = map.get(ip);
-      return !!record && record.count >= maxAttempts;
+    /** True when `key` has used up its attempts in the current window. Does not count a hit. */
+    async isRateLimited(key: string) {
+      const record = await prisma.rateLimit.findUnique({ where: { key: storageKey(key) } });
+      return !!record && record.windowStart > windowStartCutoff() && record.count >= maxAttempts;
     },
 
-    /**
-     * Increments the counter for the given identifier.
-     * Returns the new count.
-     */
-    increment(ip: string) {
-      purgeStale();
-      const now = Date.now();
-      const record = map.get(ip);
-      if (!record) {
-        map.set(ip, { count: 1, timestamp: now });
-        return 1;
+    /** Counts one attempt for `key` and returns the new count. Atomic under concurrency. */
+    async increment(key: string) {
+      // Prisma stores DateTime as UTC in a `timestamp` column. Raw Date parameters would be
+      // shifted by the database session's time zone, so pass UTC timestamps explicitly.
+      const now = Prisma.sql`CAST(${new Date().toISOString()} AS timestamptz) AT TIME ZONE 'UTC'`;
+      const cutoff = Prisma.sql`CAST(${windowStartCutoff().toISOString()} AS timestamptz) AT TIME ZONE 'UTC'`;
+      const rows = await prisma.$queryRaw<{ count: number }[]>`
+        INSERT INTO "RateLimit" ("key", "count", "windowStart")
+        VALUES (${storageKey(key)}, 1, ${now})
+        ON CONFLICT ("key") DO UPDATE SET
+          "count" = CASE WHEN "RateLimit"."windowStart" <= ${cutoff}
+                         THEN 1 ELSE "RateLimit"."count" + 1 END,
+          "windowStart" = CASE WHEN "RateLimit"."windowStart" <= ${cutoff}
+                               THEN ${now} ELSE "RateLimit"."windowStart" END
+        RETURNING "count"`;
+      // Expired rows are only clutter; sweep them now and then instead of on every request.
+      if (Math.random() < 0.02) {
+        await prisma.rateLimit
+          .deleteMany({ where: { windowStart: { lte: windowStartCutoff() } } })
+          .catch((err) => console.error("Rate limit cleanup failed:", err));
       }
-
-      // If the record is stale, reset it.
-      if (now - record.timestamp > windowMs) {
-        map.set(ip, { count: 1, timestamp: now });
-        return 1;
-      }
-
-      record.count += 1;
-      return record.count;
+      return Number(rows[0]?.count ?? 1);
     },
 
     /** Clears the counter, e.g. after a successful login. */
-    reset(ip: string) {
-      map.delete(ip);
+    async reset(key: string) {
+      await prisma.rateLimit.deleteMany({ where: { key: storageKey(key) } });
     },
-
-    /**
-     * Returns the raw map (for testing/debugging).
-     */
-    _map: map,
   };
 }

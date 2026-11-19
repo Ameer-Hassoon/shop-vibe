@@ -132,6 +132,8 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         }
         setErrors(mapped);
         setFormError(Object.keys(mapped).length ? t("fixHighlighted") : body.error || t("saveFailed"));
+      } else if (body?.code === "DEMO_READ_ONLY") {
+        setFormError(t("readOnlyDesc"));
       } else if (res.status === 401 || res.status === 403) {
         setFormError(t("notAuthorizedDesc"));
       } else {

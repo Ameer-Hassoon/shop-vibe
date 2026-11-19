@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminWrite } from "@/lib/auth";
 import { parseBody, productCreateSchema } from "@/lib/validation";
 
 const ITEMS_PER_PAGE = 20;
@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { description: { contains: search } },
+        { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAdmin();
+    const auth = await requireAdminWrite();
     if (auth.response) return auth.response;
 
     const parsed = await parseBody(request, productCreateSchema);

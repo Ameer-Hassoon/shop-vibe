@@ -20,7 +20,9 @@ const nextConfig: NextConfig = {
     optimizeCss: true,
   },
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    // Strip debug logging from production bundles, but keep errors and warnings so problems
+    // still reach the hosting provider's logs.
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
 };
 

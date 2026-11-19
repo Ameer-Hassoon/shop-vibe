@@ -23,7 +23,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("admin");
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
+  const role = session?.user?.role;
+  const readOnly = !!session?.user?.readOnly;
 
   if (status === "loading") {
     return (
@@ -89,7 +90,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </Link>
         </nav>
       </aside>
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1">
+        {readOnly && (
+          <div role="status" className="mb-5 rounded-[var(--radius-control)] bg-brand-soft px-4 py-3 text-sm text-brand">
+            <p className="font-semibold">{t("readOnlyTitle")}</p>
+            <p className="mt-0.5">{t("readOnlyDesc")}</p>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }

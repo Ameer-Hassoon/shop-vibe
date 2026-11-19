@@ -73,7 +73,7 @@ function OrderDetail({ order: initial, onChanged }: { order: AdminOrder; onChang
         body: JSON.stringify(body),
       });
       const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(json?.error || "");
+      if (!res.ok) throw new Error(json?.code === "DEMO_READ_ONLY" ? t("readOnlyDesc") : json?.error || "");
       if (json?.order) {
         setOrder((o) => ({ ...o, ...json.order }));
         setNextStatus(json.order.status);

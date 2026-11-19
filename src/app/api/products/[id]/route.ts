@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminWrite } from "@/lib/auth";
 import { parseBody, productUpdateSchema } from "@/lib/validation";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -32,7 +32,7 @@ export async function GET(_request: NextRequest, { params }: Ctx) {
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
   try {
-    const auth = await requireAdmin();
+    const auth = await requireAdminWrite();
     if (auth.response) return auth.response;
 
     const { id } = await params;
@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
 
 export async function DELETE(_request: NextRequest, { params }: Ctx) {
   try {
-    const auth = await requireAdmin();
+    const auth = await requireAdminWrite();
     if (auth.response) return auth.response;
 
     const { id } = await params;

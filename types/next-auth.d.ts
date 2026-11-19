@@ -5,6 +5,8 @@ declare module "next-auth" {
     user: {
       id: string;
       role: "USER" | "ADMIN";
+      /** Public demo admin: may view the back office but not change anything. */
+      readOnly?: boolean;
     } & DefaultSession["user"];
   }
 
