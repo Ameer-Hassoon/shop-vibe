@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { StarRating } from "./StarRating";
 import { useTranslations } from "next-intl";
+import { Button, Field, Input, Textarea } from "@/components/ui";
 
 interface Review {
   id: string;
@@ -89,84 +90,54 @@ export function ReviewForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label
-          htmlFor="review-rating"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="review-rating" className="text-sm font-medium">
           {t("review.yourRating")}
         </label>
-        <StarRating
-          id="review-rating"
-          rating={rating}
-          size="lg"
-          interactive
-          onChange={setRating}
-        />
+        <StarRating id="review-rating" rating={rating} size="lg" interactive onChange={setRating} />
       </div>
 
-      <div>
-        <label
-          htmlFor="review-title"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          {t("review.reviewTitleOptional")}
-        </label>
-        <input
-          id="review-title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={100}
-          placeholder={t("review.summarizeExperience")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      </div>
+      <Field label={t("review.reviewTitleOptional")}>
+        {(props) => (
+          <Input
+            {...props}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={100}
+            placeholder={t("review.summarizeExperience")}
+          />
+        )}
+      </Field>
 
-      <div>
-        <label
-          htmlFor="review-content"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          {t("review.yourReview")}
-        </label>
-        <textarea
-          id="review-content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={4}
-          maxLength={1000}
-          placeholder={t("review.shareExperience")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          {t("review.characters", { count: content.trim().length })}
+      <Field label={t("review.yourReview")} hint={t("review.characters", { count: content.trim().length })}>
+        {(props) => (
+          <Textarea
+            {...props}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={4}
+            maxLength={1000}
+            placeholder={t("review.shareExperience")}
+          />
+        )}
+      </Field>
+
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
         </p>
-      </div>
+      )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
-        >
-          {loading
-            ? t("review.saving")
-            : editingReview
-              ? t("review.saveChanges")
-              : t("review.submitReview")}
-        </button>
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" loading={loading}>
+          {loading ? t("review.saving") : editingReview ? t("review.saveChanges") : t("review.submitReview")}
+        </Button>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
+          <Button type="button" variant="outline" onClick={onCancel}>
             {t("common.cancel")}
-          </button>
+          </Button>
         )}
       </div>
     </form>

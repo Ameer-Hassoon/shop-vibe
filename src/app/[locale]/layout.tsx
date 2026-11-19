@@ -8,6 +8,7 @@ import { routing } from "@/i18n/routing";
 import { Providers } from "@/providers/Providers";
 import Navbar from "@/components/Navbar";
 import LocaleSync from "@/components/LocaleSync";
+import Footer from "@/components/Footer";
 
 const latin = Manrope({
   subsets: ["latin"],
@@ -64,6 +65,7 @@ export default async function LocaleLayout({
               <Navbar />
             </Suspense>
             <main className="flex-1">{children}</main>
+            <Footer />
           </Providers>
         </NextIntlClientProvider>
         {process.env.NEXT_PUBLIC_MATOMO_URL && (

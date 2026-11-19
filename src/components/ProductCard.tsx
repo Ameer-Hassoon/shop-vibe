@@ -1,134 +1,120 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
-import { useLocale, useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { translateCategory } from "@/lib/categoryTranslations";
+import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/cn";
+import { Badge, Button } from "@/components/ui";
+import { StarRating } from "./StarRating";
+import { CartIcon, CheckIcon, HeartIcon } from "./icons";
+import { useCategoryLabel } from "./categoryLabel";
 
-interface ProductCardProps {
-  product: Product;
-}
-
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product }: { product: Product }) {
   const addToCart = useCartStore((state) => state.addToCart);
-  const { toggleItem, isInWishlist } = useWishlistStore();
+  const inWishlist = useWishlistStore((state) => state.items.includes(product.id));
+  const toggleItem = useWishlistStore((state) => state.toggleItem);
   const locale = useLocale();
   const t = useTranslations();
-  const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
-  const [isHovering, setIsHovering] = useState(false);
+  const categoryLabel = useCategoryLabel();
   const [imageError, setImageError] = useState(false);
-  const inWishlist = isInWishlist(product.id);
+  const [added, setAdded] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setMousePosition({ x, y });
-  }, []);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const outOfStock = product.stock <= 0;
+  const lowStock = !outOfStock && product.stock <= 5;
+  const href = `/product/${product.id}`;
+  const rating = product.averageRating ?? 0;
+  const reviewCount = product.reviewCount ?? 0;
+
+  const handleAdd = () => {
+    addToCart(product);
+    setAdded(true);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setAdded(false), 1800);
+  };
 
   return (
-    <div
-      className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-indigo-300 hover:shadow-lg transition-all"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
+    <article className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-pop)]">
       <div className="relative">
-        <Link href={`/product/${product.id}`} locale={locale} className="block">
-          <div
-            className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer"
-            onMouseMove={handleMouseMove}
-          >
+        <Link href={href} locale={locale} className="block" tabIndex={-1} aria-hidden="true">
+          <div className="relative aspect-[4/5] overflow-hidden bg-surface-2">
             {imageError ? (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-                <span className="text-xs">{t("common.noImage")}</span>
+              <div className="flex h-full w-full items-center justify-center text-xs text-subtle">
+                {t("common.noImage")}
               </div>
             ) : (
               <Image
                 src={product.image}
-                alt={product.name}
+                alt=""
                 fill
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                className={`object-cover transition-transform duration-300 ease-out ${isHovering ? "scale-125" : "scale-100"}`}
-                style={{
-                  transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
-                }}
-                onError={() => {
-                  setImageError(true);
-                }}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                onError={() => setImageError(true)}
               />
-            )}
-            <div className="absolute top-2 left-2 z-10">
-              <span className="px-2 py-1 bg-white/90 text-xs font-medium text-gray-700 rounded-md product-card-category">
-                {translateCategory(product.category, t)}
-              </span>
-            </div>
-            {isHovering && (
-              <div className="absolute inset-0 bg-black/5 pointer-events-none" />
             )}
           </div>
         </Link>
+        <Badge className="absolute start-2.5 top-2.5 max-w-[calc(100%-4rem)] bg-surface/90 text-fg shadow-sm backdrop-blur">
+          <span className="truncate">{categoryLabel(product.category)}</span>
+        </Badge>
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleItem(product.id);
-          }}
-          aria-label={
-            inWishlist ? t("product.removeFromWishlist") : t("product.addToWishlist")
-          }
-          className="absolute top-2 right-2 z-20 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+          type="button"
+          onClick={() => toggleItem(product.id)}
+          aria-label={inWishlist ? t("product.removeFromWishlist") : t("product.addToWishlist")}
+          aria-pressed={inWishlist}
+          className={cn(
+            "absolute end-2.5 top-2.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 shadow-sm backdrop-blur transition-colors hover:bg-surface",
+            inWishlist ? "text-danger" : "text-muted hover:text-fg",
+          )}
         >
-          <svg
-            className={`w-5 h-5 ${inWishlist ? "text-red-500 fill-red-500" : "text-gray-600"}`}
-            fill={inWishlist ? "currentColor" : "none"}
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-            />
-          </svg>
+          <HeartIcon filled={inWishlist} className="h-[18px] w-[18px]" />
         </button>
+        {(outOfStock || lowStock) && (
+          <Badge
+            tone={outOfStock ? "danger" : "warning"}
+            className="absolute bottom-2.5 start-2.5 shadow-sm"
+          >
+            {outOfStock ? t("product.outOfStock") : t("product.onlyLeft", { count: product.stock })}
+          </Badge>
+        )}
       </div>
-      <div className="p-4">
-        <Link href={`/product/${product.id}`} locale={locale}>
-          <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-indigo-600">
+
+      <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
+        <Link href={href} locale={locale} className="focus-visible:outline-offset-4">
+          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-fg transition-colors group-hover:text-brand">
             {product.name}
           </h3>
         </Link>
-        <div className="mt-2 flex items-end justify-between">
-          <div>
-            <p className="text-xl font-bold text-gray-900">
-              ${product.price.toFixed(2)}
-            </p>
-            {product.stock <= 5 && product.stock > 0 && (
-              <p className="text-xs text-orange-500">
-                {t("product.onlyLeft", { count: product.stock })}
-              </p>
-            )}
-            {product.stock === 0 && (
-              <p className="text-xs text-red-500">{t("product.outOfStock")}</p>
-            )}
-          </div>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              addToCart(product);
-            }}
-            disabled={product.stock <= 0}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
-          >
-            {product.stock > 0 ? t("product.addToCart") : t("product.outOfStock")}
-          </button>
+        <div className="flex h-4 items-center gap-1.5">
+          {reviewCount > 0 && (
+            <>
+              <StarRating rating={rating} size="sm" />
+              <span className="text-xs text-muted tabular">({reviewCount})</span>
+            </>
+          )}
         </div>
+        <p className="mt-auto pt-1 text-lg font-bold tabular">{formatPrice(product.price, locale)}</p>
+        <Button
+          type="button"
+          size="md"
+          variant={added ? "secondary" : "primary"}
+          onClick={handleAdd}
+          disabled={outOfStock}
+          className="w-full gap-1.5 px-3"
+        >
+          {added ? <CheckIcon className="h-4 w-4 shrink-0" /> : <CartIcon className="h-4 w-4 shrink-0" />}
+          <span className="truncate" aria-live="polite">
+            {outOfStock ? t("product.outOfStock") : added ? t("product.added") : t("product.addToCart")}
+          </span>
+        </Button>
       </div>
-    </div>
+    </article>
   );
 }

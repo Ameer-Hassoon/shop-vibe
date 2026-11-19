@@ -5,60 +5,40 @@ import { persist } from "zustand/middleware";
 
 export const MAX_PRICE = 1000;
 
-const CATEGORY_NAME_TO_KEY: Record<string, string> = {
-  "Electronics": "cat.electronics",
-  "Computers & Laptops": "cat.computers",
-  "Phones & Tablets": "cat.phones",
-  "Cameras & Photography": "cat.cameras",
-  "TV & Home Entertainment": "cat.tv",
-  "Audio & Headphones": "cat.audio",
-  "Clothing": "cat.clothing",
-  "Shoes & Footwear": "cat.shoes",
-  "Jewelry & Watches": "cat.jewelry",
-  "Bags & Backpacks": "cat.bags",
-  "Home & Garden": "cat.home",
-  "Kitchen & Dining": "cat.kitchen",
-  "Furniture": "cat.furniture",
-  "Lighting": "cat.lighting",
-  "Sports & Outdoors": "cat.sports",
-  "Fitness Equipment": "cat.fitness",
-  "Cycling": "cat.cycling",
-  "Camping & Hiking": "cat.camping",
-  "Books": "cat.books",
-  "Toys & Games": "cat.toys",
-  "Beauty & Personal Care": "cat.beauty",
-  "Automotive": "cat.automotive",
-  "Pet Supplies": "cat.pets",
-  "Office Supplies": "cat.office",
-  // Arabic names (legacy)
-  "إلكترونيات": "cat.electronics",
-  "أجهزة الكمبيوتر المحمولة": "cat.computers",
-  "الهواتف والأجهزة اللوحية": "cat.phones",
-  "الكاميرات والتصوير": "cat.cameras",
-  "التلفاز والترفيه المنزلي": "cat.tv",
-  "الصوتيات والسماعات": "cat.audio",
-  "الملابس": "cat.clothing",
-  "الأحذية": "cat.shoes",
-  "المجوهرات والساعات": "cat.jewelry",
-  "الحقائب والحزم": "cat.bags",
-  "المنزل والحديقة": "cat.home",
-  "المطبخ وتناول الطعام": "cat.kitchen",
-  "الأثاث": "cat.furniture",
-  "الإضاءة": "cat.lighting",
-  "الرياضة في الهواء الطلق": "cat.sports",
-  "معدات اللياقة البدنية": "cat.fitness",
-  "ركوب الدراجات": "cat.cycling",
-  "التخييم والمشي": "cat.camping",
-  "الكتب": "cat.books",
-  "الألعاب": "cat.toys",
-  "الجمال والعناية الشخصية": "cat.beauty",
-  "السيارات": "cat.automotive",
-  "مستلزمات الحيوانات الأليفة": "cat.pets",
-  "لوازم المكتب": "cat.office",
+// Categories are stored by their catalogue name (what /api/products?category= expects).
+// Older versions stored `cat.x` keys; migrate those back to names.
+const LEGACY_KEY_TO_NAME: Record<string, string> = {
+  "cat.electronics": "Electronics",
+  "cat.computers": "Computers & Laptops",
+  "cat.phones": "Phones & Tablets",
+  "cat.cameras": "Cameras & Photography",
+  "cat.tv": "TV & Home Entertainment",
+  "cat.audio": "Audio & Headphones",
+  "cat.clothing": "Clothing",
+  "cat.shoes": "Shoes & Footwear",
+  "cat.jewelry": "Jewelry & Watches",
+  "cat.bags": "Bags & Backpacks",
+  "cat.home": "Home & Garden",
+  "cat.kitchen": "Kitchen & Dining",
+  "cat.furniture": "Furniture",
+  "cat.lighting": "Lighting",
+  "cat.sports": "Sports",
+  "cat.fitness": "Fitness Equipment",
+  "cat.cycling": "Cycling",
+  "cat.camping": "Camping & Hiking",
+  "cat.books": "Books",
+  "cat.toys": "Toys & Games",
+  "cat.beauty": "Beauty & Personal Care",
+  "cat.automotive": "Automotive",
+  "cat.pets": "Pet Supplies",
+  "cat.office": "Office Supplies",
 };
 
-function migrateCategories(cats: string[]): string[] {
-  return cats.map(cat => CATEGORY_NAME_TO_KEY[cat] || cat).filter(cat => cat.startsWith("cat."));
+function migrateCategories(cats: unknown): string[] {
+  if (!Array.isArray(cats)) return [];
+  return cats
+    .filter((c): c is string => typeof c === "string")
+    .map((c) => LEGACY_KEY_TO_NAME[c] ?? c);
 }
 
 interface FilterState {
@@ -115,16 +95,12 @@ export const useFilters = create<FilterState>()(
           currentPage: 1,
         }),
     }),
-    { 
+    {
       name: "shop-filters",
-      onRehydrateStorage: () => (state) => {
-        if (state && Array.isArray(state.categories) && state.categories.length > 0) {
-          const migrated = migrateCategories(state.categories);
-          if (migrated.length > 0) {
-            state.categories = migrated;
-            state.currentPage = 1;
-          }
-        }
+      version: 1,
+      migrate: (persisted) => {
+        const state = (persisted ?? {}) as Partial<FilterState>;
+        return { ...state, categories: migrateCategories(state.categories), currentPage: 1 } as FilterState;
       },
     },
   ),

@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { cn } from "@/lib/cn";
 
 interface StarRatingProps {
   rating: number;
@@ -9,8 +11,37 @@ interface StarRatingProps {
   interactive?: boolean;
   id?: string;
   onChange?: (rating: number) => void;
+  className?: string;
 }
 
+const sizeClasses = { sm: "h-4 w-4", md: "h-5 w-5", lg: "h-7 w-7" } as const;
+
+const STAR_PATH =
+  "m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9L12 3.5Z";
+
+function Star({ fill, size }: { fill: number; size: keyof typeof sizeClasses }) {
+  const cls = sizeClasses[size];
+  const svg = (color: string, extra?: string) => (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={cn(cls, "shrink-0", color, extra)}>
+      <path d={STAR_PATH} fill="currentColor" stroke="currentColor" strokeWidth={1.2} strokeLinejoin="round" />
+    </svg>
+  );
+  return (
+    <span className={cn("relative inline-block", cls)}>
+      {svg("text-line-strong")}
+      {fill > 0 && (
+        <span
+          className="absolute inset-y-0 start-0 overflow-hidden"
+          style={{ width: `${Math.min(1, fill) * 100}%` }}
+        >
+          {svg("text-accent")}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Read-only or interactive 1..5 star rating. Partial fill mirrors in RTL. */
 export function StarRating({
   rating,
   maxRating = 5,
@@ -18,69 +49,47 @@ export function StarRating({
   interactive = false,
   id,
   onChange,
+  className,
 }: StarRatingProps) {
   const t = useTranslations();
-  const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-5 h-5",
-    lg: "w-6 h-6",
-  };
+  const [hover, setHover] = useState(0);
+  const shown = interactive && hover > 0 ? hover : rating;
 
-  const handleClick = (index: number) => {
-    if (interactive && onChange) {
-      onChange(index + 1);
-    }
-  };
+  const stars = Array.from({ length: maxRating }, (_, index) => {
+    const fill = Math.max(0, Math.min(1, shown - index));
+    if (!interactive) return <Star key={index} fill={fill} size={size} />;
+    return (
+      <button
+        key={index}
+        id={index === 0 ? id : undefined}
+        type="button"
+        onClick={() => onChange?.(index + 1)}
+        onMouseEnter={() => setHover(index + 1)}
+        onMouseLeave={() => setHover(0)}
+        aria-label={t("review.rateStars", { rating: index + 1, maxRating })}
+        aria-pressed={rating === index + 1}
+        className="rounded p-0.5 transition-transform hover:scale-110"
+      >
+        <Star fill={fill} size={size} />
+      </button>
+    );
+  });
+
+  if (interactive) {
+    return (
+      <div role="group" className={cn("inline-flex items-center gap-0.5", className)}>
+        {stars}
+      </div>
+    );
+  }
 
   return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: maxRating }).map((_, index) => {
-        const filled = index < Math.floor(rating);
-        const partial = index === Math.floor(rating) && rating % 1 > 0;
-        const starClass = `${sizeClasses[size]} ${filled || partial ? "text-yellow-400" : "text-gray-300"}`;
-
-        const star = (
-          <svg
-            viewBox="0 0 24 24"
-            fill={filled || partial ? "currentColor" : "none"}
-            stroke="currentColor"
-            strokeWidth="2"
-            className={starClass}
-            style={
-              partial
-                ? { clipPath: `inset(0 ${100 - (rating % 1) * 100}% 0 0)` }
-                : undefined
-            }
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-            />
-          </svg>
-        );
-
-        if (interactive) {
-          return (
-            <button
-              key={index}
-              id={index === 0 ? id : undefined}
-              type="button"
-            onClick={() => handleClick(index)}
-              aria-label={t("review.rateStars", { rating: index + 1, maxRating })}
-              className={`${sizeClasses[size]} cursor-pointer hover:scale-110 transition-transform`}
-            >
-              {star}
-            </button>
-          );
-        }
-
-        return (
-          <span key={index} className={sizeClasses[size]}>
-            {star}
-          </span>
-        );
-      })}
-    </div>
+    <span
+      role="img"
+      aria-label={t("review.ratedOf", { rating: Number(rating.toFixed(1)), maxRating })}
+      className={cn("inline-flex items-center gap-0.5", className)}
+    >
+      {stars}
+    </span>
   );
 }

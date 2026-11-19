@@ -6,7 +6,9 @@ import { Product } from "@/types";
 import { StarRating } from "./StarRating";
 import { Link } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { translateCategory } from "@/lib/categoryTranslations";
+import { formatPrice } from "@/lib/format";
+import { Badge } from "@/components/ui";
+import { useCategoryLabel } from "./categoryLabel";
 
 interface QuickViewCardProps {
   product: Product;
@@ -32,6 +34,13 @@ export function QuickViewCard({
   const [imageError, setImageError] = useState(false);
   const locale = useLocale();
   const t = useTranslations();
+  const categoryLabel = useCategoryLabel();
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   useEffect(() => {
     setRating(initialRating);
@@ -100,79 +109,61 @@ export function QuickViewCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  const description =
-    product.description.length > 100
-      ? product.description.substring(0, 100) + "..."
-      : product.description;
+  const full = product.description ?? "";
+  const description = full.length > 100 ? full.substring(0, 100) + "..." : full;
 
   return (
     <div
       ref={cardRef}
-      className="fixed z-50 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn"
+      role="tooltip"
+      className={`fixed z-50 w-80 overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-pop)] transition-all duration-200 ${shown ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
       style={{ top: adjustedPosition.top, left: adjustedPosition.left }}
     >
-      <div className="absolute -left-2 top-6 w-4 h-4 bg-white border-l border-b border-gray-200 transform rotate-45" />
-
-      <div className="relative h-48 bg-gray-50">
+      <div className="relative aspect-[16/10] bg-surface-2">
         {imageError ? (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-            <span className="text-xs">{t("common.noImage")}</span>
+          <div className="flex h-full w-full items-center justify-center text-xs text-subtle">
+            {t("common.noImage")}
           </div>
         ) : (
           <Image
             src={product.image}
-            alt={product.name}
+            alt=""
             fill
             sizes="320px"
             className="object-cover"
             onError={() => setImageError(true)}
           />
         )}
-        <div className="absolute top-2 left-2">
-          <span className="px-2 py-1 bg-white/90 text-xs font-medium text-gray-700 rounded-md">
-            {translateCategory(product.category, t)}
-          </span>
-        </div>
+        <Badge className="absolute start-2.5 top-2.5 bg-surface/90 text-fg shadow-sm">
+          {categoryLabel(product.category)}
+        </Badge>
       </div>
 
       <div className="p-4">
-        <Link
-          href={`/product/${product.id}`}
-          locale={locale}
-          onClick={onClose}
-          className="block"
-        >
-          <h3 className="font-semibold text-gray-900 line-clamp-2 hover:text-indigo-600 transition-colors">
+        <Link href={`/product/${product.id}`} locale={locale} onClick={onClose} className="block">
+          <h3 className="line-clamp-2 font-semibold text-fg transition-colors hover:text-brand">
             {product.name}
           </h3>
         </Link>
 
-        <div className="flex items-center gap-2 mt-2">
-          <StarRating rating={rating} size="sm" />
-          {reviewCount > 0 && (
-            <span className="text-xs text-gray-500">({reviewCount})</span>
-          )}
-        </div>
-
-        <p className="text-sm text-gray-500 mt-2 line-clamp-2">{description}</p>
-
-        <div className="flex items-center justify-between mt-3">
-          <div>
-            <p className="text-xl font-bold text-gray-900">
-              ${Number(product.price ?? 0).toFixed(2)}
-            </p>
-            {product.stock > 0 ? (
-              <p className="text-xs text-green-600 font-medium">
-                {product.stock <= 5
-                  ? t("product.onlyLeft", { count: product.stock })
-                  : t("product.inStock")}
-              </p>
-            ) : (
-              <p className="text-xs text-red-500 font-medium">
-                {t("product.outOfStock")}
-              </p>
-            )}
+        {reviewCount > 0 && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <StarRating rating={rating} size="sm" />
+            <span className="text-xs text-muted tabular">({reviewCount})</span>
           </div>
+        )}
+
+        {description && <p className="mt-2 line-clamp-2 text-sm text-muted">{description}</p>}
+
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <p className="text-lg font-bold tabular">{formatPrice(Number(product.price ?? 0), locale)}</p>
+          {product.stock > 0 ? (
+            <p className={`text-xs font-medium ${product.stock <= 5 ? "text-warning" : "text-success"}`}>
+              {product.stock <= 5 ? t("product.onlyLeft", { count: product.stock }) : t("product.inStock")}
+            </p>
+          ) : (
+            <p className="text-xs font-medium text-danger">{t("product.outOfStock")}</p>
+          )}
         </div>
       </div>
     </div>

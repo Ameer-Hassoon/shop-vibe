@@ -3,36 +3,38 @@
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { routing } from "@/i18n/routing";
+import { cn } from "@/lib/cn";
+import { GlobeIcon } from "./icons";
 
-export default function LanguageSwitcher() {
+/** One-tap language toggle: shows the language you would switch to, in its own script. */
+export default function LanguageSwitcher({ className }: { className?: string }) {
   const locale = useLocale();
-  const t = useTranslations("common");
+  const t = useTranslations("navbar");
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLocaleChange = (newLocale: string) => {
-    router.replace(pathname, { locale: newLocale });
+  const target = routing.locales.find((l) => l !== locale) ?? routing.defaultLocale;
+  const label = target === "ar" ? "العربية" : "English";
+
+  const switchLocale = () => {
+    // Keep the query string (search, etc.) when changing language.
+    const query = typeof window !== "undefined" ? window.location.search : "";
+    router.replace(`${pathname}${query}`, { locale: target });
   };
 
   return (
-    <div className="relative inline-block">
-      <select
-        value={locale}
-        onChange={(e) => handleLocaleChange(e.target.value)}
-        className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none pr-8"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-          backgroundPosition: "right 0.5rem center",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "1.5em 1.5em",
-        }}
-      >
-        {routing.locales.map((loc) => (
-          <option key={loc} value={loc}>
-            {loc === "en" ? "English" : "العربية"}
-          </option>
-        ))}
-      </select>
-    </div>
+    <button
+      type="button"
+      onClick={switchLocale}
+      lang={target}
+      aria-label={t("switchLanguage", { language: label })}
+      className={cn(
+        "inline-flex h-10 items-center gap-1.5 rounded-[var(--radius-control)] px-3 text-sm font-medium text-fg transition-colors hover:bg-surface-2",
+        className,
+      )}
+    >
+      <GlobeIcon className="h-[18px] w-[18px] text-muted" />
+      <span>{label}</span>
+    </button>
   );
 }

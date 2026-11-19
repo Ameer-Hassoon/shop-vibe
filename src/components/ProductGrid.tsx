@@ -5,6 +5,8 @@ import { Product } from "@/types";
 import { ProductCard } from "./ProductCard";
 import { QuickViewCard } from "./QuickViewCard";
 
+export const ProductGridClasses = "grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4";
+
 interface ProductGridProps {
   products: Product[];
 }
@@ -20,6 +22,8 @@ export function ProductGrid({ products }: ProductGridProps) {
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
       }
+      // Quick view is a mouse affordance; skip it on touch devices.
+      if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
       hoverTimeoutRef.current = setTimeout(() => {
         setHoveredProduct(product);
@@ -65,10 +69,11 @@ export function ProductGrid({ products }: ProductGridProps) {
 
   return (
     <div className="relative">
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className={ProductGridClasses}>
         {products.map((product) => (
           <div
             key={product.id}
+            className="min-w-0"
             onMouseEnter={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               handleProductHover(product, e, rect);
@@ -90,22 +95,6 @@ export function ProductGrid({ products }: ProductGridProps) {
           onClose={handleProductLeave}
         />
       )}
-
-      <style jsx global>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 }

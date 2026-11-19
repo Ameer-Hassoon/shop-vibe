@@ -1,24 +1,23 @@
-export function ProductGridSkeleton() {
+"use client";
+
+import { useTranslations } from "next-intl";
+import { ProductGridClasses } from "./ProductGrid";
+
+export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+  const t = useTranslations("common");
   return (
-    <div
-      role="status"
-      aria-label="Loading products"
-      aria-busy="true"
-      className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-    >
-      {Array.from({ length: 12 }).map((_, i) => (
+    <div role="status" aria-label={t("loading")} aria-busy="true" className={ProductGridClasses}>
+      {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+          className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface"
         >
-          <div className="aspect-square bg-gray-200 animate-pulse" />
-          <div className="p-4 space-y-3">
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
-            <div className="flex justify-between items-center pt-2">
-              <div className="h-6 bg-gray-200 rounded animate-pulse w-20" />
-              <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
-            </div>
+          <div className="aspect-[4/5] animate-pulse bg-surface-2" />
+          <div className="space-y-3 p-3 sm:p-4">
+            <div className="h-4 w-4/5 animate-pulse rounded bg-surface-2" />
+            <div className="h-3 w-1/3 animate-pulse rounded bg-surface-2" />
+            <div className="h-5 w-1/2 animate-pulse rounded bg-surface-2" />
+            <div className="h-10 animate-pulse rounded-[var(--radius-control)] bg-surface-2" />
           </div>
         </div>
       ))}

@@ -2,6 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { StarRating } from './StarRating';
+import { Badge, Button } from '@/components/ui';
+import { formatDate } from '@/lib/format';
 
 interface Review {
   id: string;
@@ -27,52 +29,38 @@ export function ReviewCard({ review, currentUserId, onEdit }: ReviewCardProps) {
   const t = useTranslations();
   const locale = useLocale();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
   const isEdited = review.updatedAt && review.updatedAt !== review.createdAt;
   const isOwner = currentUserId && currentUserId === review.user.id;
+  const name = review.user.name || t("review.anonymous");
 
   return (
-    <div className="border-b border-gray-200 pb-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900">
-              {review.user.name || t("review.anonymous")}
-            </span>
-            {review.isVerified && (
-              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                {t("review.verifiedPurchase")}
-              </span>
-            )}
+    <article className="py-6 first:pt-0">
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand"
+        >
+          {name.trim().charAt(0).toUpperCase()}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-semibold">{name}</span>
+            {review.isVerified && <Badge tone="success">{t("review.verifiedPurchase")}</Badge>}
           </div>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
             <StarRating rating={review.rating} size="sm" />
-            <span className="text-sm text-gray-500">{formatDate(review.createdAt)}</span>
-            {isEdited && (
-              <span className="text-xs text-gray-400 italic">{t("review.edited")}</span>
-            )}
+            <span className="text-sm text-muted">{formatDate(review.createdAt, locale)}</span>
+            {isEdited && <span className="text-xs italic text-subtle">{t("review.edited")}</span>}
           </div>
         </div>
         {isOwner && onEdit && (
-          <button
-            onClick={() => onEdit(review)}
-            className="text-sm font-medium px-4 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
-          >
+          <Button variant="outline" size="sm" onClick={() => onEdit(review)}>
             {t("review.editReview")}
-          </button>
+          </Button>
         )}
       </div>
-      {review.title && (
-        <h4 className="font-medium text-gray-900 mt-3">{review.title}</h4>
-      )}
-      <p className="mt-2 text-gray-600">{review.content}</p>
-    </div>
+      {review.title && <h4 className="mt-3 font-semibold">{review.title}</h4>}
+      <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-muted sm:text-base">{review.content}</p>
+    </article>
   );
 }

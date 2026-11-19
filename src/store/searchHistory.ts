@@ -12,7 +12,7 @@ interface SearchHistoryState {
 
 export const useSearchHistory = create<SearchHistoryState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       searches: [],
       addSearch: (query) => {
         const trimmed = query.trim();
