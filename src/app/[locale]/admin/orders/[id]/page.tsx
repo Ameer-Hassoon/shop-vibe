@@ -18,16 +18,8 @@ import {
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { IconArrowBack, IconReceipt } from "@/components/admin/icons";
 import type { AdminOrder } from "@/components/admin/types";
+import { isOrderStatus, NEXT_STATUSES } from "@/lib/orderStatus";
 
-/** Sensible forward-only workflow. The API accepts any status; the UI only offers these. */
-const NEXT: Record<string, string[]> = {
-  PENDING: ["CONFIRMED", "PROCESSING", "CANCELLED"],
-  CONFIRMED: ["PROCESSING", "SHIPPED", "CANCELLED"],
-  PROCESSING: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED", "CANCELLED"],
-  DELIVERED: [],
-  CANCELLED: [],
-};
 
 function Row({ label, value, strong, tone }: { label: string; value: React.ReactNode; strong?: boolean; tone?: "success" }) {
   return (
@@ -63,7 +55,7 @@ function OrderDetail({ order: initial, onChanged }: { order: AdminOrder; onChang
   const [eta, setEta] = useState(initial.estimatedDelivery ? initial.estimatedDelivery.slice(0, 10) : "");
   const [shipBusy, setShipBusy] = useState(false);
 
-  const options = NEXT[order.status] ?? [];
+  const options = isOrderStatus(order.status) ? NEXT_STATUSES[order.status] : [];
   const itemsSum = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
   const subtotal = order.subtotal && order.subtotal > 0 ? order.subtotal : itemsSum;
   const discount = order.discountAmount ?? 0;

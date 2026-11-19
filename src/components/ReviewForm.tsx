@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { StarRating } from "./StarRating";
 import { useTranslations } from "next-intl";
 import { Button, Field, Input, Textarea } from "@/components/ui";
@@ -30,23 +30,21 @@ export function ReviewForm({
   onCancel,
 }: ReviewFormProps) {
   const t = useTranslations();
-  const [rating, setRating] = useState(0);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [rating, setRating] = useState(editingReview?.rating ?? 0);
+  const [title, setTitle] = useState(editingReview?.title ?? "");
+  const [content, setContent] = useState(editingReview?.content ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (editingReview) {
-      setRating(editingReview.rating);
-      setTitle(editingReview.title || "");
-      setContent(editingReview.content);
-    } else {
-      setRating(0);
-      setTitle("");
-      setContent("");
-    }
-  }, [editingReview]);
+  // Reset the fields while rendering when a different review is being edited
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes).
+  const [shownReview, setShownReview] = useState(editingReview);
+  if (shownReview !== editingReview) {
+    setShownReview(editingReview);
+    setRating(editingReview?.rating ?? 0);
+    setTitle(editingReview?.title ?? "");
+    setContent(editingReview?.content ?? "");
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

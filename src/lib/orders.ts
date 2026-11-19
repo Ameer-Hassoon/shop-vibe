@@ -1,19 +1,24 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeOrderTotals, type PricingCoupon } from "@/lib/pricing";
-import type { CreateOrderInput } from "@/lib/validation";
+import { canTransition } from "@/lib/orderStatus";
+import type { AdminOrderUpdateInput, CreateOrderInput } from "@/lib/validation";
 
 export type OrderErrorCode =
   | "VALIDATION"
   | "PRODUCT_NOT_FOUND"
   | "OUT_OF_STOCK"
-  | "COUPON_INVALID";
+  | "COUPON_INVALID"
+  | "NOT_FOUND"
+  | "INVALID_TRANSITION";
 
 const STATUS_BY_CODE: Record<OrderErrorCode, number> = {
   VALIDATION: 400,
   PRODUCT_NOT_FOUND: 400,
   OUT_OF_STOCK: 409,
   COUPON_INVALID: 400,
+  NOT_FOUND: 404,
+  INVALID_TRANSITION: 409,
 };
 
 /** Expected business-rule failure; the route turns it into `{ error, code }`. */
@@ -77,6 +82,23 @@ function mergeItems(items: CreateOrderInput["items"]) {
   return [...merged].map(([productId, quantity]) => ({ productId, quantity }));
 }
 
+/**
+ * Runs `fn` and retries it when SQLite reports write contention (P2034). The failed
+ * transaction has already rolled back, so retrying is safe.
+ */
+async function withWriteRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const contended =
+        err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034";
+      if (!contended || attempt >= maxAttempts) throw err;
+      await new Promise((r) => setTimeout(r, 25 * attempt));
+    }
+  }
+}
+
 const orderInclude = {
   items: { include: { product: true } },
   coupon: true,
@@ -94,10 +116,8 @@ const orderInclude = {
 export async function createOrder(userId: string, input: CreateOrderInput) {
   const lines = mergeItems(input.items);
 
-  let attempts = 0;
-  for (;;) {
-    try {
-      const order = await prisma.$transaction(
+  const order = await withWriteRetry(() =>
+    prisma.$transaction(
         async (tx) => {
           const products = await tx.product.findMany({
             where: { id: { in: lines.map((l) => l.productId) } },
@@ -188,25 +208,89 @@ export async function createOrder(userId: string, input: CreateOrderInput) {
           });
         },
         { maxWait: 10_000, timeout: 15_000 },
-      );
+      ),
+  );
 
-      await linkViewsToOrderItems(userId, order.items).catch((err) =>
-        console.error("Failed to link views to order items:", err),
-      );
-      return order;
-    } catch (err) {
-      // SQLite reports write contention as P2034; the transaction rolled back, so retry.
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2034" &&
-        ++attempts < 4
-      ) {
-        await new Promise((r) => setTimeout(r, 25 * attempts));
-        continue;
+  await linkViewsToOrderItems(userId, order.items).catch((err) =>
+    console.error("Failed to link views to order items:", err),
+  );
+  return order;
+}
+
+const adminOrderInclude = {
+  user: { select: { id: true, name: true, email: true } },
+  items: { include: { product: true } },
+  coupon: true,
+} satisfies Prisma.OrderInclude;
+
+/**
+ * Applies an admin's change to an order: a status move and/or tracking details.
+ *
+ * Status moves must follow the workflow in `orderStatus.ts`. The write is a compare-and-set on
+ * the status that was read, so two admins acting at once cannot overwrite each other (for
+ * example, re-opening an order that was just cancelled). Cancelling gives back the coupon use
+ * and, unless `restoreStock` is false, the stock.
+ */
+export async function updateOrderAsAdmin(id: string, input: AdminOrderUpdateInput) {
+  const { status, trackingNumber, carrier, estimatedDelivery } = input;
+  const restoreStock = input.restoreStock ?? true;
+
+  return withWriteRetry(() =>
+    prisma.$transaction(async (tx) => {
+      const existing = await tx.order.findUnique({ where: { id }, include: { items: true } });
+      if (!existing) throw new OrderError("NOT_FOUND", "Order not found");
+
+      const target = status ?? existing.status;
+      if (target === "CANCELLED" && existing.status === "CANCELLED") {
+        throw new OrderError("INVALID_TRANSITION", "Order is already cancelled");
       }
-      throw err;
-    }
-  }
+      if (!canTransition(existing.status, target)) {
+        throw new OrderError(
+          "INVALID_TRANSITION",
+          `An order cannot move from ${existing.status} to ${target}`,
+        );
+      }
+
+      const claimed = await tx.order.updateMany({
+        where: { id, status: existing.status },
+        data: {
+          status: target,
+          ...(trackingNumber !== undefined && { trackingNumber }),
+          ...(carrier !== undefined && { carrier }),
+          ...(estimatedDelivery !== undefined && {
+            estimatedDelivery: estimatedDelivery === null ? null : new Date(estimatedDelivery),
+          }),
+        },
+      });
+      if (claimed.count === 0) {
+        throw new OrderError(
+          "INVALID_TRANSITION",
+          "This order was just changed by someone else. Reload it and try again.",
+        );
+      }
+
+      const cancelled = target === "CANCELLED";
+      if (cancelled) {
+        if (restoreStock) {
+          for (const item of existing.items) {
+            await tx.product.updateMany({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } },
+            });
+          }
+        }
+        if (existing.couponId) {
+          await tx.coupon.updateMany({
+            where: { id: existing.couponId, usageCount: { gt: 0 } },
+            data: { usageCount: { decrement: 1 } },
+          });
+        }
+      }
+
+      const order = await tx.order.findUniqueOrThrow({ where: { id }, include: adminOrderInclude });
+      return { order, cancelled, restoredStock: cancelled && restoreStock };
+    }),
+  );
 }
 
 /** Attributes the user's recent product views (last 7 days) to the order items they led to. */
