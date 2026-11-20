@@ -10,11 +10,13 @@ export async function GET() {
     const history = await prisma.searchHistory.findMany({
       where: { userId: auth.user.id },
       orderBy: { createdAt: "desc" },
-      take: 10,
+      // Prisma applies `take` before `distinct`, so read the whole (50-row capped) history
+      // and trim afterwards; otherwise repeated searches would leave fewer than 10 entries.
+      take: 50,
       distinct: ["query"],
     });
 
-    return NextResponse.json(history, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json(history.slice(0, 10), { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error("Get search history error:", error);
     return NextResponse.json(

@@ -10,6 +10,8 @@ type Ctx = { params: Promise<{ id: string }> };
 // A review needs a purchase that the shop has accepted (not pending/cancelled).
 const REVIEWABLE_ORDER_STATUSES = ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"];
 
+const MAX_REVIEWS = 50;
+
 const userSelect = { select: { id: true, name: true } };
 
 const error = (message: string, code: string, status: number) =>
@@ -26,6 +28,8 @@ export async function GET(_request: NextRequest, { params }: Ctx) {
         where: { productId: id, isApproved: true },
         include: { user: userSelect },
         orderBy: { createdAt: "desc" },
+        // newest first; the summary below still covers every review
+        take: MAX_REVIEWS,
       }),
       prisma.review.aggregate({
         where: { productId: id, isApproved: true },

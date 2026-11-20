@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const [orders, total] = await Promise.all([
+    const [orders, total, statusCounts] = await Promise.all([
       prisma.order.findMany({
         where,
         include: {
@@ -96,12 +96,11 @@ export async function GET(request: NextRequest) {
         take: ITEMS_PER_PAGE,
       }),
       prisma.order.count({ where }),
+      prisma.order.groupBy({
+        by: ["status"],
+        _count: { status: true },
+      }),
     ]);
-
-    const statusCounts = await prisma.order.groupBy({
-      by: ["status"],
-      _count: { status: true },
-    });
 
     const statusBreakdown = statusCounts.reduce(
       (acc, item) => {
